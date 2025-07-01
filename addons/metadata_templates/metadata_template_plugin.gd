@@ -18,6 +18,11 @@ func _enter_tree() -> void:
 		if not dir.dir_exists("templates"):
 			dir.make_dir("templates")
 
+	# Register the metadata utils singleton with a different autoload name
+	if not ProjectSettings.has_setting("autoload/MDUtils"):
+		# Add the metadata_utils.gd as an autoload singleton
+		add_autoload_singleton("MDUtils", "res://addons/metadata_templates/metadata_utils.gd")
+
 	# Load dependencies with direct file paths
 	var template_manager_script = load("res://addons/metadata_templates/template_manager.gd")
 	if template_manager_script:
@@ -81,6 +86,10 @@ func _exit_tree() -> void:
 		if is_instance_valid(template_editor_instance) and template_editor_instance.get_parent():
 			template_editor_instance.get_parent().remove_child(template_editor_instance)
 		template_editor_instance.queue_free()
+
+	# Remove the singleton when the plugin is disabled
+	if ProjectSettings.has_setting("autoload/MDUtils"):
+		remove_autoload_singleton("MDUtils")
 
 	# Remove the button
 	if metadata_button:

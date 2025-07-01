@@ -18,6 +18,10 @@ config/name="DogRPG"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
 
+[autoload]
+
+MDUtils="*res://addons/metadata_templates/metadata_utils.gd"
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/metadata_templates/plugin.cfg")
