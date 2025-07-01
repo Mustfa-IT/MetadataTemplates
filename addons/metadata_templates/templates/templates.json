@@ -1,0 +1,20 @@
+{
+  "Node2D": {
+    "item": {
+      "actions": {
+        "type": 3.0,
+        "value": [
+          "test"
+        ]
+      },
+      "item_id": {
+        "type": 0.0,
+        "value": "test"
+      },
+      "num": {
+        "type": 1.0,
+        "value": 1.0
+      }
+    }
+  }
+}

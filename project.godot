@@ -8,8 +8,20 @@
 
 config_version=5
 
+[addons]
+
+metadata_manager/template_script_path="res://metadata_definitions.gd"
+
 [application]
 
 config/name="DogRPG"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/metadata_templates/plugin.cfg", "res://addons/phantom_camera/plugin.cfg")

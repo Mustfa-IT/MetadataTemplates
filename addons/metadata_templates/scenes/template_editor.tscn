@@ -1,0 +1,156 @@
+[gd_scene load_steps=2 format=3 uid="uid://14pnxgpq84cx"]
+
+[ext_resource type="Script" uid="uid://ctpumj48p0rax" path="res://addons/metadata_templates/scenes/template_editor.gd" id="1_mtu0t"]
+
+[node name="TemplateEditor" type="Control"]
+custom_minimum_size = Vector2(100, 200)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_mtu0t")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Metadata Templates"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Node Type:"
+
+[node name="NodeTypeOption" type="OptionButton" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AddTypeButton" type="Button" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Add Type"
+
+[node name="HSeparator2" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="TemplatesList" type="ItemList" parent="VBoxContainer"]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="NewTemplateButton" type="Button" parent="VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+text = "New Template"
+
+[node name="EditTemplateButton" type="Button" parent="VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+text = "Edit Template"
+
+[node name="DeleteTemplateButton" type="Button" parent="VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+text = "Delete Template"
+
+[node name="HSeparator3" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="MetadataEditor" type="VBoxContainer" parent="VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/MetadataEditor"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/MetadataEditor/HBoxContainer"]
+layout_mode = 2
+text = "Template Name:"
+
+[node name="TemplateName" type="LineEdit" parent="VBoxContainer/MetadataEditor/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/MetadataEditor"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MetadataList" type="VBoxContainer" parent="VBoxContainer/MetadataEditor/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="VBoxContainer/MetadataEditor"]
+layout_mode = 2
+
+[node name="AddMetadataButton" type="Button" parent="VBoxContainer/MetadataEditor/HBoxContainer2"]
+layout_mode = 2
+text = "Add Metadata Item"
+
+[node name="Spacer" type="Control" parent="VBoxContainer/MetadataEditor/HBoxContainer2"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SaveButton" type="Button" parent="VBoxContainer/MetadataEditor/HBoxContainer2"]
+layout_mode = 2
+text = "Save Template"
+
+[node name="CancelButton" type="Button" parent="VBoxContainer/MetadataEditor/HBoxContainer2"]
+layout_mode = 2
+text = "Cancel"
+
+[node name="AddTypeDialog" type="ConfirmationDialog" parent="."]
+title = "Add Node Type"
+size = Vector2i(300, 100)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="AddTypeDialog"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 292.0
+offset_bottom = 51.0
+
+[node name="Label" type="Label" parent="AddTypeDialog/VBoxContainer"]
+layout_mode = 2
+text = "Enter Node Type:"
+
+[node name="NodeTypeInput" type="LineEdit" parent="AddTypeDialog/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+placeholder_text = "e.g. Node2D, Label, Button"
+
+[node name="ApplyTemplateDialog" type="ConfirmationDialog" parent="."]
+title = "Apply Template"
+size = Vector2i(300, 200)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ApplyTemplateDialog"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 292.0
+offset_bottom = 151.0
+
+[node name="Label" type="Label" parent="ApplyTemplateDialog/VBoxContainer"]
+layout_mode = 2
+text = "Select template to apply:"
+
+[node name="TemplateOptions" type="ItemList" parent="ApplyTemplateDialog/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
