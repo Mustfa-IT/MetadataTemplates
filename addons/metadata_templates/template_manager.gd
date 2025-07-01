@@ -13,6 +13,12 @@ const TYPE_ARRAY = 3
 
 var templates = {}
 var template_file_path = TEMPLATES_DIR + TEMPLATES_FILE
+var last_modified_time = 0
+var file_check_timer: Timer = null
+var file_watch_enabled = true
+
+# Signal for when templates are reloaded from external changes
+signal templates_reloaded
 
 func initialize() -> void:
 	# Create templates directory if it doesn't exist
@@ -27,6 +33,84 @@ func initialize() -> void:
 	# Clean up any empty node types
 	clean_empty_node_types()
 
+	# Setup file watching
+	setup_file_watcher()
+
+	# Store initial modification time
+	update_last_modified_time()
+
+func setup_file_watcher() -> void:
+	# Create a timer for checking file changes
+	file_check_timer = Timer.new()
+	file_check_timer.wait_time = 2.0 # Check every 2 seconds
+	file_check_timer.one_shot = false
+	file_check_timer.autostart = true
+
+	# Add the timer to the scene tree through EditorPlugin's process
+	var editor = Engine.get_main_loop().get_root().get_child(0)
+	editor.add_child(file_check_timer)
+
+	# Connect the timer's timeout signal
+	file_check_timer.connect("timeout", check_file_changes)
+
+	print("Template file watcher initialized")
+
+func update_last_modified_time() -> void:
+	var file = FileAccess.open(template_file_path, FileAccess.READ)
+	if file:
+		file.close()
+		var file_info = FileAccess.get_modified_time(template_file_path)
+		if file_info > 0:
+			last_modified_time = file_info
+
+func check_file_changes() -> void:
+	if not file_watch_enabled:
+		return
+
+	# Check if the file exists
+	if not FileAccess.file_exists(template_file_path):
+		return
+
+	# Get current modification time
+	var current_modified_time = FileAccess.get_modified_time(template_file_path)
+
+	# If the file was modified since we last checked
+	if current_modified_time != last_modified_time and current_modified_time > 0:
+		print("Templates file changed externally - reloading")
+		# Update last modified time
+		last_modified_time = current_modified_time
+		# Reload templates
+		reload_templates_from_disk()
+
+func reload_templates_from_disk() -> void:
+	# Temporarily disable file watching to prevent recursive reloads
+	file_watch_enabled = false
+
+	var file = FileAccess.open(template_file_path, FileAccess.READ)
+	if file:
+		var json_string = file.get_as_text()
+		var json_parse = JSON.new()
+		var parse_result = json_parse.parse(json_string)
+
+		if parse_result == OK:
+			print("Successfully loaded templates from disk")
+			templates = json_parse.get_data()
+			# Migrate if needed
+			migrate_templates_if_needed()
+			# Clean up empty types
+			clean_empty_node_types()
+			# Emit signal for listeners to update
+			emit_signal("templates_reloaded")
+		else:
+			print("Error parsing templates file: ", json_parse.get_error_message())
+			print("Error at line: ", json_parse.get_error_line())
+			# Keep using existing templates without overwriting
+
+		file.close()
+
+	# Re-enable file watching
+	file_watch_enabled = true
+
 func load_templates() -> void:
 	var file = FileAccess.open(template_file_path, FileAccess.READ)
 	if file:
@@ -37,6 +121,10 @@ func load_templates() -> void:
 			templates = json_parse.get_data()
 			# Migrate old format templates to new format if needed
 			migrate_templates_if_needed()
+		else:
+			print("Error parsing templates file: ", json_parse.get_error_message())
+			print("Error at line: ", json_parse.get_error_line())
+			templates = {}
 		file.close()
 	else:
 		# Initialize with empty templates if file doesn't exist
@@ -92,11 +180,20 @@ func save_templates() -> void:
 	# Clean empty node types before saving
 	clean_empty_node_types()
 
+	# Temporarily disable file watching to prevent recursive reload
+	file_watch_enabled = false
+
 	var file = FileAccess.open(template_file_path, FileAccess.WRITE)
 	if file:
 		var json_string = JSON.stringify(templates, "  ")
 		file.store_string(json_string)
 		file.close()
+
+		# Update the last modified time after saving
+		update_last_modified_time()
+
+	# Re-enable file watching
+	file_watch_enabled = true
 
 # Remove any node types that have no templates
 func clean_empty_node_types() -> void:
@@ -163,3 +260,10 @@ func ensure_node_type_exists(node_type: String) -> void:
 	if not templates.has(node_type):
 		templates[node_type] = {}
 	# Don't save yet - we'll only save when a template is created
+
+func _notification(what):
+	# Clean up the timer when this object is being freed
+	if what == NOTIFICATION_PREDELETE:
+		if file_check_timer and is_instance_valid(file_check_timer):
+			file_check_timer.stop()
+			file_check_timer.queue_free()

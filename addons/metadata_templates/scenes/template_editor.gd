@@ -7,6 +7,7 @@ var current_template_name: String = ""
 var editing_template: bool = false
 var selected_node: Node = null
 var metadata_items = []
+var ui_ready = false
 
 # References to UI elements
 @onready var node_type_option = $VBoxContainer/HBoxContainer/NodeTypeOption
@@ -32,34 +33,48 @@ func _ready() -> void:
 		disconnect("resized", _on_resized)
 
 	# Connect signals
-	$VBoxContainer/HBoxContainer/NodeTypeOption.connect("item_selected", _on_node_type_selected)
-	$VBoxContainer/HBoxContainer/AddTypeButton.connect("pressed", _on_add_type_button_pressed)
-	$VBoxContainer/HBoxContainer2/NewTemplateButton.connect("pressed", _on_new_template_button_pressed)
-	$VBoxContainer/HBoxContainer2/EditTemplateButton.connect("pressed", _on_edit_template_button_pressed)
-	$VBoxContainer/HBoxContainer2/DeleteTemplateButton.connect("pressed", _on_delete_template_button_pressed)
-	$VBoxContainer/MetadataEditor/HBoxContainer2/AddMetadataButton.connect("pressed", _on_add_metadata_button_pressed)
-	$VBoxContainer/MetadataEditor/HBoxContainer2/SaveButton.connect("pressed", _on_save_button_pressed)
-	$VBoxContainer/MetadataEditor/HBoxContainer2/CancelButton.connect("pressed", _on_cancel_button_pressed)
-	templates_list.connect("item_selected", _on_template_selected)
+	if node_type_option and templates_list:
+		$VBoxContainer/HBoxContainer/NodeTypeOption.connect("item_selected", _on_node_type_selected)
+		$VBoxContainer/HBoxContainer/AddTypeButton.connect("pressed", _on_add_type_button_pressed)
+		$VBoxContainer/HBoxContainer2/NewTemplateButton.connect("pressed", _on_new_template_button_pressed)
+		$VBoxContainer/HBoxContainer2/EditTemplateButton.connect("pressed", _on_edit_template_button_pressed)
+		$VBoxContainer/HBoxContainer2/DeleteTemplateButton.connect("pressed", _on_delete_template_button_pressed)
+		$VBoxContainer/MetadataEditor/HBoxContainer2/AddMetadataButton.connect("pressed", _on_add_metadata_button_pressed)
+		$VBoxContainer/MetadataEditor/HBoxContainer2/SaveButton.connect("pressed", _on_save_button_pressed)
+		$VBoxContainer/MetadataEditor/HBoxContainer2/CancelButton.connect("pressed", _on_cancel_button_pressed)
+		templates_list.connect("item_selected", _on_template_selected)
 
-	add_type_dialog.connect("confirmed", _on_add_type_dialog_confirmed)
-	apply_template_dialog.connect("confirmed", _on_apply_template_dialog_confirmed)
+		# Connect double-click (item_activated) signal for opening the template editor
+		templates_list.connect("item_activated", _on_template_double_clicked)
+
+		add_type_dialog.connect("confirmed", _on_add_type_dialog_confirmed)
+		apply_template_dialog.connect("confirmed", _on_apply_template_dialog_confirmed)
+
+		ui_ready = true
 
 	# We'll delay the UI update until the template_manager is properly set
 	# by the plugin script
 	print("Template editor ready - waiting for template manager")
 
+	# Initialize UI if template_manager is already set
+	if template_manager and ui_ready:
+		initialize()
+
 # This function will be called once the template manager is properly set
 func initialize() -> void:
-	if template_manager:
+	if template_manager and ui_ready:
 		print("Template manager assigned - initializing UI")
 		update_node_type_list()
 	else:
-		print("Warning: Template manager not assigned")
+		print("Warning: Cannot initialize - template_manager or UI not ready")
 
 func update_node_type_list() -> void:
-	if not template_manager:
-		printerr("Cannot update node type list: template_manager is null")
+	if not template_manager or not ui_ready:
+		printerr("Cannot update node type list: template_manager or UI not ready")
+		return
+
+	if not is_instance_valid(node_type_option):
+		printerr("Cannot update node type list: node_type_option is not valid")
 		return
 
 	node_type_option.clear()
@@ -73,8 +88,12 @@ func update_node_type_list() -> void:
 		index += 1
 
 func update_templates_list() -> void:
-	if not template_manager:
-		printerr("Cannot update templates list: template_manager is null")
+	if not template_manager or not ui_ready:
+		printerr("Cannot update templates list: template_manager or UI not ready")
+		return
+
+	if not is_instance_valid(templates_list):
+		printerr("Cannot update templates list: templates_list is not valid")
 		return
 
 	templates_list.clear()
@@ -93,8 +112,9 @@ func _on_node_type_selected(index: int) -> void:
 # Setter for template_manager that properly initializes the UI
 func set_template_manager(manager: RefCounted) -> void:
 	template_manager = manager
-	# Initialize the UI once the template manager is set
-	initialize()
+	# Initialize the UI once the template manager is set and UI is ready
+	if ui_ready:
+		initialize()
 
 func _on_add_type_button_pressed() -> void:
 	node_type_input.text = ""
@@ -140,51 +160,9 @@ func _on_edit_template_button_pressed() -> void:
 
 	var template_name = templates_list.get_item_text(selected_items[0])
 	current_template_name = template_name
-	template_name_field.text = template_name
 
-	# Clear existing metadata fields
-	for child in metadata_list.get_children():
-		child.queue_free()
-	metadata_items = []
-
-	# Populate metadata fields
-	var templates = template_manager.get_templates_for_node_type(current_node_type)
-	if templates.has(template_name):
-		var template = templates[template_name]
-		for key in template:
-			var value
-			var type_id = 0 # default to string
-
-			# Check if this is using the new format with type information
-			if template[key] is Dictionary and template[key].has("type") and template[key].has("value"):
-				value = template[key].value
-				type_id = template[key].type
-
-				# Convert value to string for display
-				if type_id == template_manager.TYPE_ARRAY and value is Array:
-					value = JSON.stringify(value)
-				elif type_id == template_manager.TYPE_BOOLEAN:
-					value = str(value).to_lower()
-				else:
-					value = str(value)
-			else:
-				# Legacy format
-				value = str(template[key])
-
-				# Try to guess the type
-				if template[key] is float or template[key] is int:
-					type_id = template_manager.TYPE_NUMBER
-				elif template[key] is bool:
-					type_id = template_manager.TYPE_BOOLEAN
-					value = value.to_lower()
-				elif template[key] is Array:
-					type_id = template_manager.TYPE_ARRAY
-					value = JSON.stringify(template[key])
-
-			_add_metadata_field(key, value, type_id)
-
-	editing_template = true
-	metadata_editor.visible = true
+	# Use the common function to open the editor
+	_open_template_editor(template_name)
 
 func _on_delete_template_button_pressed() -> void:
 	var selected_items = templates_list.get_selected_items()
@@ -364,3 +342,66 @@ func _on_resized() -> void:
 	# This function now allows natural resizing
 	# No need to enforce minimum size as Godot's layout system will handle it
 	pass
+
+# Handle double-clicks on templates in the list
+func _on_template_double_clicked(index: int) -> void:
+	# Get the template name from the selected index
+	var template_name = templates_list.get_item_text(index)
+
+	# Set the current template name
+	current_template_name = template_name
+
+	# Open the editor with this template
+	_open_template_editor(template_name)
+
+# Common function to open the template editor with a specific template
+func _open_template_editor(template_name: String) -> void:
+	if current_node_type.is_empty() or template_name.is_empty():
+		return
+
+	# Set the template name field
+	template_name_field.text = template_name
+
+	# Clear existing metadata fields
+	for child in metadata_list.get_children():
+		child.queue_free()
+	metadata_items = []
+
+	# Populate metadata fields
+	var templates = template_manager.get_templates_for_node_type(current_node_type)
+	if templates.has(template_name):
+		var template = templates[template_name]
+		for key in template:
+			var value
+			var type_id = 0 # default to string
+
+			# Check if this is using the new format with type information
+			if template[key] is Dictionary and template[key].has("type") and template[key].has("value"):
+				value = template[key].value
+				type_id = template[key].type
+
+				# Convert value to string for display
+				if type_id == template_manager.TYPE_ARRAY and value is Array:
+					value = JSON.stringify(value)
+				elif type_id == template_manager.TYPE_BOOLEAN:
+					value = str(value).to_lower()
+				else:
+					value = str(value)
+			else:
+				# Legacy format
+				value = str(template[key])
+
+				# Try to guess the type
+				if template[key] is float or template[key] is int:
+					type_id = template_manager.TYPE_NUMBER
+				elif template[key] is bool:
+					type_id = template_manager.TYPE_BOOLEAN
+					value = value.to_lower()
+				elif template[key] is Array:
+					type_id = template_manager.TYPE_ARRAY
+					value = JSON.stringify(template[key])
+
+			_add_metadata_field(key, value, type_id)
+
+	editing_template = true
+	metadata_editor.visible = true

@@ -23,6 +23,9 @@ func _enter_tree() -> void:
 	if template_manager_script:
 		template_manager = template_manager_script.new()
 		template_manager.initialize()
+
+		# Connect to the templates_reloaded signal
+		template_manager.connect("templates_reloaded", _on_templates_reloaded)
 	else:
 		printerr("Failed to load template_manager.gd")
 		return
@@ -48,17 +51,9 @@ func _enter_tree() -> void:
 		if template_editor_instance.has_method("initialize"):
 			template_editor_instance.initialize()
 
-	# Add the editor UI as a main screen tab instead of a dock
-	# This will place it alongside the AssetLib tab
-	add_control_to_bottom_panel(template_editor_instance, "Templates")
-
-	# Don't set minimum size on the panel - allow natural resizing
-	var panel = template_editor_instance.get_parent()
-	if panel and panel.has_method("set_custom_minimum_size"):
-		panel.set_custom_minimum_size(Vector2(0, 0))
-
-	# Make the panel visible initially to ensure it's sized correctly
-	make_bottom_panel_item_visible(template_editor_instance)
+	# Add the editor UI as a main screen tab
+	get_editor_interface().get_editor_main_screen().add_child(template_editor_instance)
+	template_editor_instance.hide() # Hide until selected
 
 	# Add button to the editor
 	metadata_button = Button.new()
@@ -81,9 +76,10 @@ func _enter_tree() -> void:
 	print("Metadata Templates Plugin: Initialization complete")
 
 func _exit_tree() -> void:
-	# Remove the editor from bottom panel instead of dock
+	# Remove the editor from main screen
 	if template_editor_instance:
-		remove_control_from_bottom_panel(template_editor_instance)
+		if is_instance_valid(template_editor_instance) and template_editor_instance.get_parent():
+			template_editor_instance.get_parent().remove_child(template_editor_instance)
 		template_editor_instance.queue_free()
 
 	# Remove the button
@@ -98,6 +94,23 @@ func _exit_tree() -> void:
 	# Save templates when plugin is disabled
 	if template_manager:
 		template_manager.save_templates()
+
+# Required to make it appear in the top tab bar
+func _has_main_screen() -> bool:
+	return true
+
+# The label of the tab
+func _get_plugin_name() -> String:
+	return "Templates"
+
+# Optional: the icon of the tab
+func _get_plugin_icon() -> Texture2D:
+	return get_editor_interface().get_base_control().get_theme_icon("NodeInfo", "EditorIcons")
+
+# This function is called when the tab is clicked
+func _make_visible(visible: bool) -> void:
+	if template_editor_instance:
+		template_editor_instance.visible = visible
 
 func _on_selection_changed() -> void:
 	var selection = get_editor_interface().get_selection().get_selected_nodes()
@@ -127,4 +140,17 @@ func _on_apply_templates_button_pressed() -> void:
 			# Now safely set properties and show the dialog
 			info_dialog.title = "No templates available"
 			info_dialog.dialog_text = "No metadata templates found for this node type: " + current_selection.get_class()
+			info_dialog.popup_centered()
+
+# Handle templates being reloaded from external file changes
+func _on_templates_reloaded() -> void:
+	# Update the UI when templates are reloaded
+	if template_editor_instance:
+		template_editor_instance.update_node_type_list()
+		template_editor_instance.update_templates_list()
+
+		# Show a notification to the user
+		if info_dialog:
+			info_dialog.title = "Templates Reloaded"
+			info_dialog.dialog_text = "Templates file was modified externally and has been reloaded."
 			info_dialog.popup_centered()
