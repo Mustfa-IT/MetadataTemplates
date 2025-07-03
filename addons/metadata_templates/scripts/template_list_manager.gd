@@ -9,6 +9,8 @@ signal template_delete_requested(template_name)
 var template_manager: RefCounted
 var templates_container: VBoxContainer
 var current_node_type: String = ""
+var highlighted_template: String = ""
+var template_items = {} # Dictionary to store template items by name
 
 func _init(p_template_manager: RefCounted, p_container: VBoxContainer) -> void:
 	template_manager = p_template_manager
@@ -28,6 +30,7 @@ func update_templates_list() -> void:
 		return
 
 	# Clear existing templates
+	template_items.clear()
 	for child in templates_container.get_children():
 		child.queue_free()
 
@@ -42,8 +45,27 @@ func update_templates_list() -> void:
 
 	for template_name in templates:
 		# Create a container for each template item with buttons
+		var panel = PanelContainer.new()
+		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+		# Add stylebox for highlighting
+		var stylebox = StyleBoxFlat.new()
+		stylebox.bg_color = Color(0.2, 0.23, 0.28)
+		stylebox.border_width_left = 2
+		stylebox.border_width_top = 2
+		stylebox.border_width_right = 2
+		stylebox.border_width_bottom = 2
+		stylebox.border_color = Color(0.3, 0.34, 0.4)
+		stylebox.corner_radius_top_left = 3
+		stylebox.corner_radius_top_right = 3
+		stylebox.corner_radius_bottom_right = 3
+		stylebox.corner_radius_bottom_left = 3
+		panel.add_theme_stylebox_override("panel", stylebox)
+
 		var hbox = HBoxContainer.new()
+		hbox.add_theme_constant_override("separation", 8)
 		hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		panel.add_child(hbox)
 
 		# Add template name label
 		var label = Label.new()
@@ -69,8 +91,41 @@ func update_templates_list() -> void:
 		delete_button.connect("pressed", func(): emit_signal("template_delete_requested", template_name))
 		hbox.add_child(delete_button)
 
-		templates_container.add_child(hbox)
+		templates_container.add_child(panel)
+
+		# Store reference to the panel for highlighting
+		template_items[template_name] = {
+			"panel": panel,
+			"label": label,
+			"stylebox": stylebox
+		}
+
+	# Apply highlight to previously highlighted template if it still exists
+	if highlighted_template and template_items.has(highlighted_template):
+		highlight_template(highlighted_template)
 
 func _on_template_label_gui_input(event: InputEvent, template_name: String) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.double_click:
-		emit_signal("template_edit_requested", template_name)
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.double_click:
+			emit_signal("template_edit_requested", template_name)
+		else:
+			# Single click - highlight and emit selected signal
+			highlight_template(template_name)
+			emit_signal("template_selected", template_name)
+
+# Highlight the specified template in the list
+func highlight_template(template_name: String) -> void:
+	# Remove highlight from all templates
+	for item_name in template_items:
+		var item = template_items[item_name]
+		item.stylebox.bg_color = Color(0.2, 0.23, 0.28)
+		item.stylebox.border_color = Color(0.3, 0.34, 0.4)
+		item.label.add_theme_color_override("font_color", Color.WHITE)
+
+	# Apply highlight to the selected template
+	if template_items.has(template_name):
+		var item = template_items[template_name]
+		item.stylebox.bg_color = Color(0.25, 0.30, 0.45) # Slightly blue background
+		item.stylebox.border_color = Color(0.4, 0.6, 1.0) # Bright blue border
+		item.label.add_theme_color_override("font_color", Color(0.9, 1.0, 1.0)) # Brighter text
+		highlighted_template = template_name

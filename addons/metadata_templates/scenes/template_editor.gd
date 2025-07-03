@@ -95,6 +95,7 @@ func _initialize_managers() -> void:
 	# Connect signals from template list manager
 	template_list_manager.connect("template_edit_requested", _on_edit_template_button_pressed)
 	template_list_manager.connect("template_delete_requested", _on_delete_template_button_pressed)
+	template_list_manager.connect("template_selected", _on_template_selected)
 
 # This function will be called once the template manager is properly set
 func initialize() -> void:
@@ -179,6 +180,9 @@ func _on_new_template_button_pressed() -> void:
 
 func _on_edit_template_button_pressed(template_name: String) -> void:
 	current_template_name = template_name
+	# Highlight the template when editing
+	if template_list_manager:
+		template_list_manager.highlight_template(template_name)
 	_open_template_editor(template_name)
 
 func _on_delete_template_button_pressed(template_name: String) -> void:
@@ -275,6 +279,10 @@ func _open_template_editor(template_name: String) -> void:
 	# Update current template name
 	current_template_name = template_name
 
+	# Make sure the template is highlighted in the list
+	if template_list_manager:
+		template_list_manager.highlight_template(template_name)
+
 	# Update parent template dropdown
 	parent_template_manager.update_parent_template_dropdown(current_node_type, template_name)
 
@@ -300,3 +308,7 @@ func update_templates_list() -> void:
 		template_list_manager.set_node_type(current_node_type)
 	else:
 		printerr("Template list manager not initialized")
+
+func _on_template_selected(template_name: String) -> void:
+	# Update the current selected template name
+	current_template_name = template_name
