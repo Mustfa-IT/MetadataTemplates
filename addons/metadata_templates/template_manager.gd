@@ -14,6 +14,11 @@ const TYPE_ARRAY = 3
 # Special metadata keys
 const EXTENDS_KEY = "_extends"
 
+# Import/Export constants
+const MERGE_REPLACE_ALL = 0
+const MERGE_KEEP_EXISTING = 1
+const MERGE_REPLACE_NODE_TYPES = 2
+
 var templates = {}
 var template_file_path = TEMPLATES_DIR + TEMPLATES_FILE
 var last_modified_time = 0
@@ -345,6 +350,124 @@ func ensure_node_type_exists(node_type: String) -> void:
 	if not templates.has(node_type):
 		templates[node_type] = {}
 	# Don't save yet - we'll only save when a template is created
+
+# Export templates to a JSON file
+func export_templates_to_file(file_path: String) -> bool:
+	# Clean empty node types before exporting
+	clean_empty_node_types()
+
+	# Create a copy of templates to export
+	var export_data = templates.duplicate(true)
+
+	# Try to write the file
+	var file = FileAccess.open(file_path, FileAccess.WRITE)
+	if file:
+		var json_string = JSON.stringify(export_data, "  ")
+		file.store_string(json_string)
+		file.close()
+		return true
+	else:
+		print("Failed to open file for writing: " + file_path)
+		return false
+
+# Validate that a file contains valid template data
+func validate_templates_file(file_path: String) -> Dictionary:
+	var result = {
+		"valid": false,
+		"error": "",
+		"data": null
+	}
+
+	# Check if the file exists
+	if not FileAccess.file_exists(file_path):
+		result.error = "File does not exist."
+		return result
+
+	# Try to open and read the file
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		result.error = "Could not open file for reading."
+		return result
+
+	# Read the file content
+	var json_string = file.get_as_text()
+	file.close()
+
+	# Parse the JSON
+	var json = JSON.new()
+	var parse_result = json.parse(json_string)
+
+	if parse_result != OK:
+		result.error = "Invalid JSON format: " + json.get_error_message() + " at line " + str(json.get_error_line())
+		return result
+
+	# Get the data
+	var data = json.get_data()
+
+	# Validate that it's a dictionary (expected format for templates)
+	if not data is Dictionary:
+		result.error = "File does not contain valid template data (expected a dictionary)."
+		return result
+
+	# Basic validation passed
+	result.valid = true
+	result.data = data
+
+	return result
+
+# Import templates from a JSON file
+func import_templates_from_file(file_path: String, merge_strategy: int = MERGE_REPLACE_ALL) -> Dictionary:
+	var result = {
+		"success": false,
+		"error": "",
+		"imported_count": 0
+	}
+
+	# Validate the file first
+	var validation = validate_templates_file(file_path)
+	if not validation.valid:
+		result.error = validation.error
+		return result
+
+	# Get the templates from the file
+	var imported_templates = validation.data
+
+	# Create a backup of current templates before modifying
+	var backup_templates = templates.duplicate(true)
+
+	# Apply merge strategy
+	match merge_strategy:
+		MERGE_REPLACE_ALL:
+			# Replace all templates
+			templates = imported_templates
+
+		MERGE_KEEP_EXISTING:
+			# Merge node types and templates, but keep existing templates when there's a conflict
+			for node_type in imported_templates:
+				if not templates.has(node_type):
+					templates[node_type] = {}
+
+				for template_name in imported_templates[node_type]:
+					if not templates[node_type].has(template_name):
+						templates[node_type][template_name] = imported_templates[node_type][template_name]
+						result.imported_count += 1
+
+		MERGE_REPLACE_NODE_TYPES:
+			# Replace all templates for matching node types, but keep node types that aren't in the import
+			for node_type in imported_templates:
+				templates[node_type] = imported_templates[node_type]
+				result.imported_count += len(imported_templates[node_type])
+
+	# If we replaced all templates, count the imported templates
+	if merge_strategy == MERGE_REPLACE_ALL:
+		for node_type in templates:
+			result.imported_count += len(templates[node_type])
+
+	# Save the updated templates
+	save_templates()
+
+	result.success = true
+	return result
 
 func _notification(what):
 	# Clean up the timer when this object is being freed

@@ -12,6 +12,7 @@ The Metadata Templates plugin for Godot 4.x provides a powerful, reusable system
 - Metadata type system (string, number, boolean, array)
 - Convenient utilities for accessing metadata in your game code
 - External templates file that can be version controlled
+- Import/export templates for sharing across projects
 
 ## Installation
 
@@ -62,6 +63,33 @@ Templates can inherit properties from other templates of the same node type.
 - Circular inheritance is prevented automatically
 - Child templates override parent properties with the same name
 - Multiple levels of inheritance are supported (grandparent, great-grandparent, etc.)
+
+## Import/Export Templates
+
+The plugin allows you to share templates between projects or with other team members.
+
+### Exporting Templates
+
+1. Click the **Export Templates** button in the Templates tab
+2. Choose a location and filename to save the templates as a JSON file
+3. All current templates will be saved to the selected file
+
+### Importing Templates
+
+1. Click the **Import Templates** button in the Templates tab
+2. Select a JSON file containing templates to import
+3. Choose a merge strategy:
+   - **Replace All Templates**: Removes all existing templates and uses only the imported ones
+   - **Only Add New Templates**: Keeps existing templates and only adds templates that don't already exist
+   - **Replace Node Types**: Replaces templates for node types in the imported file, but keeps other node types
+
+### Sharing Templates
+
+Templates are stored in standard JSON format, making them easy to share:
+- Between different projects
+- With team members
+- In version control systems
+- As part of asset packages
 
 ## Using Metadata in Your Code
 
@@ -141,6 +169,7 @@ Templates are stored in a JSON file at `res://addons/metadata_templates/template
 - Create, edit, and delete templates
 - View and manage template inheritance
 - Preview inherited properties
+- Import/export templates for sharing between projects
 
 ## Examples
 
@@ -175,15 +204,17 @@ func use_item(item_node):
 4. Use the MDUtils singleton for type-safe access to metadata
 5. Prefer metadata for configuration over hardcoded values
 6. Use template inheritance to avoid duplicating common properties
+7. Export templates to share them between projects and team members
 
 ## Troubleshooting
 
 - If templates don't appear in the list, make sure you've selected the correct node type
 - If applied metadata doesn't work, check if the template was successfully applied
 - If inheritance doesn't work, ensure there are no circular references
+- If importing templates fails, verify the JSON file format is correct
 
 ---
 
-**Plugin Version:** 1.0.0
+**Plugin Version:** 1.1.0
 **Author:** Mustafa-IT
 **License:** MIT

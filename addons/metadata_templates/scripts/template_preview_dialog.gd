@@ -30,10 +30,10 @@ func _ready() -> void:
 
 	# Fix window behavior
 	unresizable = false
-	exclusive = false
+	exclusive = false # Make sure it's not exclusive
 	transient = true # Make it stay tied to the editor window
-	# The line below causes the error - remove it completely, not just comment it out
-	# always_on_top = true  # This conflicts with transient=true
+	# REMOVED: The line below was causing the conflict
+	# always_on_top = true  # This conflicts with transient=true and exclusive dialogs
 
 	# Connect the close request signal
 	connect("close_requested", _on_close_requested)

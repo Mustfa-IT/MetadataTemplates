@@ -91,7 +91,8 @@ func _enter_tree() -> void:
 
 	# Create a reusable dialog for information messages
 	info_dialog = AcceptDialog.new()
-	info_dialog.exclusive = true
+	# Make sure it's NOT exclusive to prevent conflicts with other dialogs
+	info_dialog.exclusive = false
 	get_editor_interface().get_base_control().add_child(info_dialog)
 
 	# Connect to selection changed signal
@@ -178,7 +179,7 @@ func show_info_dialog(title: String, message: String) -> void:
 	# Make sure dialog is initialized
 	if not is_instance_valid(info_dialog):
 		info_dialog = AcceptDialog.new()
-		info_dialog.exclusive = true
+		info_dialog.exclusive = false # Make sure it's not exclusive
 		get_editor_interface().get_base_control().add_child(info_dialog)
 
 	# Set properties and show the dialog

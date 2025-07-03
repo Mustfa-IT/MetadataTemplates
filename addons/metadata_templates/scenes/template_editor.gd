@@ -23,6 +23,13 @@ var ui_ready = false
 @onready var parent_template_option = $VBoxContainer/VSplitContainer/MetadataEditor/VBoxContainer/ParentTemplateContainer/ParentTemplateOption
 @onready var show_inherited_toggle = $VBoxContainer/VSplitContainer/MetadataEditor/VBoxContainer/ParentTemplateContainer/ShowInheritedToggle
 @onready var split_container = $VBoxContainer/VSplitContainer
+@onready var export_import_container = $VBoxContainer/HeaderPanel/VBoxContainer/ImportExportSection/HBoxContainer
+@onready var export_button = $VBoxContainer/HeaderPanel/VBoxContainer/ImportExportSection/HBoxContainer/ExportButton
+@onready var import_button = $VBoxContainer/HeaderPanel/VBoxContainer/ImportExportSection/HBoxContainer/ImportButton
+@onready var export_dialog = $ExportDialog
+@onready var import_dialog = $ImportDialog
+@onready var import_merge_dialog = $ImportMergeDialog
+@onready var merge_option_button = $ImportMergeDialog/VBoxContainer/MergeOptionButton
 
 # Component managers
 var template_list_manager: TemplateListManager
@@ -56,6 +63,21 @@ func _ready() -> void:
 		$VBoxContainer/VSplitContainer/MetadataEditor/VBoxContainer/HBoxContainer2/SaveButton.connect("pressed", _on_save_button_pressed)
 		$VBoxContainer/VSplitContainer/MetadataEditor/VBoxContainer/HBoxContainer2/CancelButton.connect("pressed", _on_cancel_button_pressed)
 		show_inherited_toggle.connect("toggled", _on_show_inherited_toggled)
+
+		# Connect import/export buttons
+		export_button.connect("pressed", _on_export_button_pressed)
+		import_button.connect("pressed", _on_import_button_pressed)
+
+		# Set up file dialog filters
+		export_dialog.add_filter("*.json", "JSON Files")
+		import_dialog.add_filter("*.json", "JSON Files")
+
+		# Connect file dialog signals
+		export_dialog.connect("file_selected", _on_export_file_selected)
+		import_dialog.connect("file_selected", _on_import_file_selected)
+
+		# Connect merge dialog signals
+		import_merge_dialog.connect("confirmed", _on_import_merge_confirmed)
 
 		# Perform delayed initialization after ready
 		call_deferred("_initialize_managers_deferred")
@@ -342,3 +364,122 @@ func update_templates_list() -> void:
 func _on_template_selected(template_name: String) -> void:
 	# Update the current selected template name
 	current_template_name = template_name
+
+
+func _on_import_file_selected(path: String) -> void:
+	if not template_manager:
+		printerr("Cannot import: template_manager is null")
+		return
+
+	# First validate if the file contains valid templates
+	var validation_result = template_manager.validate_templates_file(path)
+
+	if not validation_result.valid:
+		# Make sure import dialog is fully closed first
+		import_dialog.hide()
+		await get_tree().process_frame
+
+		# Show error message
+		var dialog = AcceptDialog.new()
+		dialog.title = "Import Failed"
+		dialog.dialog_text = "Failed to import templates: " + validation_result.error
+		dialog.exclusive = true
+		add_child(dialog)
+		dialog.popup_centered()
+		await dialog.confirmed
+		dialog.queue_free()
+		return
+
+	# Store path for when merge dialog is confirmed
+	import_merge_dialog.set_meta("import_path", path)
+
+	# Make sure import dialog is fully closed before showing merge dialog
+	import_dialog.hide()
+	await get_tree().process_frame
+
+	# Position the merge dialog in a visible area of the screen
+	var screen_size = DisplayServer.screen_get_size()
+	var dialog_size = import_merge_dialog.size
+	import_merge_dialog.position = Vector2i(
+		(screen_size.x - dialog_size.x) / 2,
+		min((screen_size.y - dialog_size.y) / 2, screen_size.y - dialog_size.y - 50)
+	)
+
+	# Now show the merge dialog
+	import_merge_dialog.popup_centered()
+
+func _on_export_button_pressed() -> void:
+	if not template_manager:
+		printerr("Cannot export: template_manager is null")
+		return
+
+	# Set default filename with date
+	var date_string = Time.get_datetime_string_from_system().replace(":", "-")
+	export_dialog.current_file = "metadata_templates_" + date_string + ".json"
+	export_dialog.popup_centered()
+
+func _on_export_file_selected(path: String) -> void:
+	if not template_manager:
+		printerr("Cannot export: template_manager is null")
+		return
+
+	# Get the templates to export
+	var export_successful = template_manager.export_templates_to_file(path)
+
+	# Make sure export dialog is fully closed first
+	export_dialog.hide()
+	await get_tree().process_frame
+
+	# Show confirmation or error message
+	var dialog = AcceptDialog.new()
+	dialog.exclusive = true
+	add_child(dialog)
+
+	if export_successful:
+		dialog.title = "Export Successful"
+		dialog.dialog_text = "Templates exported successfully to:\n" + path
+	else:
+		dialog.title = "Export Failed"
+		dialog.dialog_text = "Failed to export templates to file."
+
+	dialog.popup_centered()
+	await dialog.confirmed
+	dialog.queue_free()
+
+func _on_import_button_pressed() -> void:
+	if not template_manager:
+		printerr("Cannot import: template_manager is null")
+		return
+
+	import_dialog.popup_centered()
+
+func _on_import_merge_confirmed() -> void:
+	var path = import_merge_dialog.get_meta("import_path")
+	var merge_strategy = merge_option_button.selected
+
+	# Hide the merge dialog first
+	import_merge_dialog.hide()
+	await get_tree().process_frame
+
+	var import_result = template_manager.import_templates_from_file(path, merge_strategy)
+
+	# Show result dialog
+	var dialog = AcceptDialog.new()
+	dialog.exclusive = true
+	add_child(dialog)
+
+	if import_result.success:
+		dialog.title = "Import Successful"
+		dialog.dialog_text = "Successfully imported " + str(import_result.imported_count) + " templates."
+
+		# Update the UI
+		update_node_type_list()
+		if not current_node_type.is_empty():
+			template_list_manager.set_node_type(current_node_type)
+	else:
+		dialog.title = "Import Failed"
+		dialog.dialog_text = "Failed to import templates: " + import_result.error
+
+	dialog.popup_centered()
+	await dialog.confirmed
+	dialog.queue_free()
