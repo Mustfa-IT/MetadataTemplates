@@ -10,18 +10,19 @@ var ui_ready = false
 
 # References to UI elements
 @onready var node_type_option = $VBoxContainer/HeaderPanel/VBoxContainer/NodeTypeSection/HBoxContainer/NodeTypeOption
-@onready var templates_container = $VBoxContainer/TemplatesPanel/VBoxContainer/TemplatesContainer
-@onready var metadata_editor = $VBoxContainer/MetadataEditor
-@onready var template_name_field = $VBoxContainer/MetadataEditor/VBoxContainer/HBoxContainer/TemplateName
-@onready var metadata_list = $VBoxContainer/MetadataEditor/VBoxContainer/ScrollContainer/VBoxContainer/MetadataList
-@onready var parent_metadata_list = $VBoxContainer/MetadataEditor/VBoxContainer/ScrollContainer/VBoxContainer/ParentMetadataList
+@onready var templates_container = $VBoxContainer/VSplitContainer/TemplatesPanel/VBoxContainer/TemplatesContainer
+@onready var metadata_editor = $VBoxContainer/VSplitContainer/MetadataEditor
+@onready var template_name_field = $VBoxContainer/VSplitContainer/MetadataEditor/VBoxContainer/HBoxContainer/TemplateName
+@onready var metadata_list = $VBoxContainer/VSplitContainer/MetadataEditor/VBoxContainer/ScrollContainer/VBoxContainer/MetadataList
+@onready var parent_metadata_list = $VBoxContainer/VSplitContainer/MetadataEditor/VBoxContainer/ScrollContainer/VBoxContainer/ParentMetadataList
 @onready var add_type_dialog = $AddTypeDialog
 @onready var node_type_input = $AddTypeDialog/VBoxContainer/NodeTypeInput
 @onready var apply_template_dialog = $ApplyTemplateDialog
 @onready var template_options = $ApplyTemplateDialog/VBoxContainer/TemplateOptions
-@onready var add_template_button = $VBoxContainer/TemplatesPanel/VBoxContainer/TemplateHeader/AddTemplateButton
-@onready var parent_template_option = $VBoxContainer/MetadataEditor/VBoxContainer/ParentTemplateContainer/ParentTemplateOption
-@onready var show_inherited_toggle = $VBoxContainer/MetadataEditor/VBoxContainer/ParentTemplateContainer/ShowInheritedToggle
+@onready var add_template_button = $VBoxContainer/VSplitContainer/TemplatesPanel/VBoxContainer/TemplateHeader/AddTemplateButton
+@onready var parent_template_option = $VBoxContainer/VSplitContainer/MetadataEditor/VBoxContainer/ParentTemplateContainer/ParentTemplateOption
+@onready var show_inherited_toggle = $VBoxContainer/VSplitContainer/MetadataEditor/VBoxContainer/ParentTemplateContainer/ShowInheritedToggle
+@onready var split_container = $VBoxContainer/VSplitContainer
 
 # Component managers
 var template_list_manager: TemplateListManager
@@ -37,6 +38,10 @@ func _ready() -> void:
 	if get_parent() and get_parent() is Window:
 		get_parent().min_size = Vector2(0, 0)
 
+	# Initialize the split container with a reasonable default ratio
+	if is_instance_valid(split_container):
+		split_container.split_offset = 150
+
 	# Initialize component managers once UI is ready
 	if is_instance_valid(node_type_option):
 		# Set up the Add Template button icon first so it's available for the managers
@@ -47,9 +52,9 @@ func _ready() -> void:
 		# Connect main UI signals
 		node_type_option.connect("item_selected", _on_node_type_selected)
 		$VBoxContainer/HeaderPanel/VBoxContainer/NodeTypeSection/HBoxContainer/AddTypeButton.connect("pressed", _on_add_type_button_pressed)
-		$VBoxContainer/MetadataEditor/VBoxContainer/HBoxContainer2/AddMetadataButton.connect("pressed", _on_add_metadata_button_pressed)
-		$VBoxContainer/MetadataEditor/VBoxContainer/HBoxContainer2/SaveButton.connect("pressed", _on_save_button_pressed)
-		$VBoxContainer/MetadataEditor/VBoxContainer/HBoxContainer2/CancelButton.connect("pressed", _on_cancel_button_pressed)
+		$VBoxContainer/VSplitContainer/MetadataEditor/VBoxContainer/HBoxContainer2/AddMetadataButton.connect("pressed", _on_add_metadata_button_pressed)
+		$VBoxContainer/VSplitContainer/MetadataEditor/VBoxContainer/HBoxContainer2/SaveButton.connect("pressed", _on_save_button_pressed)
+		$VBoxContainer/VSplitContainer/MetadataEditor/VBoxContainer/HBoxContainer2/CancelButton.connect("pressed", _on_cancel_button_pressed)
 		show_inherited_toggle.connect("toggled", _on_show_inherited_toggled)
 
 		# Perform delayed initialization after ready
@@ -71,9 +76,9 @@ func _initialize_managers_deferred() -> void:
 	# Apply custom styling to buttons
 	var buttons = [
 		$VBoxContainer/HeaderPanel/VBoxContainer/NodeTypeSection/HBoxContainer/AddTypeButton,
-		$VBoxContainer/MetadataEditor/VBoxContainer/HBoxContainer2/AddMetadataButton,
-		$VBoxContainer/MetadataEditor/VBoxContainer/HBoxContainer2/SaveButton,
-		$VBoxContainer/MetadataEditor/VBoxContainer/HBoxContainer2/CancelButton
+		$VBoxContainer/VSplitContainer/MetadataEditor/VBoxContainer/HBoxContainer2/AddMetadataButton,
+		$VBoxContainer/VSplitContainer/MetadataEditor/VBoxContainer/HBoxContainer2/SaveButton,
+		$VBoxContainer/VSplitContainer/MetadataEditor/VBoxContainer/HBoxContainer2/CancelButton
 	]
 
 	for button in buttons:
