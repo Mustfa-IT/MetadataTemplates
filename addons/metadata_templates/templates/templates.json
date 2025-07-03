@@ -1,189 +1,239 @@
 {
-  "Node2D": {
-    "WeaponItem": {
-      "item_id": {
-        "type": 0,
-        "value": "weapon_sword"
-      },
-      "item_name": {
-        "type": 0,
-        "value": "Magic Sword"
-      },
-      "item_description": {
-        "type": 0,
-        "value": "A powerful sword with magical properties"
-      },
-      "damage": {
-        "type": 1,
-        "value": 25
-      },
-      "is_quest_item": {
-        "type": 2,
-        "value": false
-      },
-      "tags": {
-        "type": 3,
-        "value": [
-          "weapon",
-          "sword",
-          "magical"
-        ]
-      },
-      "color": {
-        "type": 0,
-        "value": "#88ffff"
-      },
-      "scale_factor": {
-        "type": 1,
-        "value": 1.2
-      }
-    },
-    "QuestItem": {
-      "item_id": {
-        "type": 0,
-        "value": "quest_amulet"
-      },
-      "item_name": {
-        "type": 0,
-        "value": "Ancient Amulet"
-      },
-      "item_description": {
-        "type": 0,
-        "value": "An ancient amulet needed to complete the main quest"
-      },
-      "is_quest_item": {
-        "type": 2,
+  "Area2D": {
+    "TriggerZone": {
+      "one_time_only": {
+        "type": 2.0,
         "value": true
       },
-      "quest_id": {
-        "type": 0,
-        "value": "main_quest_3"
-      },
-      "tags": {
-        "type": 3,
+      "required_items": {
+        "type": 3.0,
         "value": [
-          "quest",
-          "artifact",
-          "unique"
+          "quest_key"
         ]
       },
-      "color": {
-        "type": 0,
-        "value": "#ffcc00"
+      "zone_id": {
+        "type": 0.0,
+        "value": "trigger_cutscene_1"
       },
-      "scale_factor": {
-        "type": 1,
-        "value": 0.8
+      "zone_type": {
+        "type": 0.0,
+        "value": "cutscene"
       }
-    },
+    }
+  },
+  "Label": {
+    "DialogueText": {
+      "auto_advance": {
+        "type": 2.0,
+        "value": false
+      },
+      "character_name": {
+        "type": 0.0,
+        "value": "NPC Name"
+      },
+      "dialogue_id": {
+        "type": 0.0,
+        "value": "npc_greeting"
+      },
+      "display_time": {
+        "type": 1.0,
+        "value": 3.0
+      }
+    }
+  },
+  "Node2D": {
     "CharacterStats": {
       "character_id": {
-        "type": 0,
+        "type": 0.0,
         "value": "npc_merchant"
       },
       "character_name": {
-        "type": 0,
+        "type": 0.0,
         "value": "Merchant Bob"
       },
-      "health": {
-        "type": 1,
-        "value": 100
-      },
-      "speed": {
-        "type": 1,
-        "value": 1.5
-      },
-      "is_friendly": {
-        "type": 2,
-        "value": true
+      "color": {
+        "type": 0.0,
+        "value": "#aaffaa"
       },
       "dialogue_ids": {
-        "type": 3,
+        "type": 3.0,
         "value": [
           "greeting",
           "shop_open",
           "farewell"
         ]
       },
+      "health": {
+        "type": 1.0,
+        "value": 100.0
+      },
+      "is_friendly": {
+        "type": 2.0,
+        "value": true
+      },
+      "speed": {
+        "type": 1.0,
+        "value": 1.5
+      }
+    },
+    "ConsumableItem": {
+      "_extends": {
+        "type": 0.0,
+        "value": "ItemBase"
+      },
       "color": {
-        "type": 0,
-        "value": "#aaffaa"
+        "type": 0.0,
+        "value": "#ff5555"
+      },
+      "healing_amount": {
+        "type": 1.0,
+        "value": 50.0
+      },
+      "is_consumable": {
+        "type": 2.0,
+        "value": true
+      },
+      "item_description": {
+        "type": 0.0,
+        "value": "Restores 50 health points"
+      },
+      "item_id": {
+        "type": 0.0,
+        "value": "health_potion"
+      },
+      "item_name": {
+        "type": 0.0,
+        "value": "Health Potion"
       }
     },
     "EnvironmentObject": {
-      "object_id": {
-        "type": 0,
-        "value": "env_chest"
-      },
-      "object_name": {
-        "type": 0,
-        "value": "Treasure Chest"
-      },
-      "is_interactive": {
-        "type": 2,
-        "value": true
-      },
-      "interaction_type": {
-        "type": 0,
-        "value": "container"
+      "color": {
+        "type": 0.0,
+        "value": "#cc8855"
       },
       "contains_items": {
-        "type": 3,
+        "type": 3.0,
         "value": [
           "gold_coins",
           "health_potion",
           "map_fragment"
         ]
       },
-      "color": {
-        "type": 0,
-        "value": "#cc8855"
+      "interaction_type": {
+        "type": 0.0,
+        "value": "container"
       },
-      "scale_factor": {
-        "type": 1,
-        "value": 1.0
-      }
-    }
-  },
-  "Area2D": {
-    "TriggerZone": {
-      "zone_id": {
-        "type": 0,
-        "value": "trigger_cutscene_1"
-      },
-      "zone_type": {
-        "type": 0,
-        "value": "cutscene"
-      },
-      "one_time_only": {
-        "type": 2,
+      "is_interactive": {
+        "type": 2.0,
         "value": true
       },
-      "required_items": {
-        "type": 3,
-        "value": [
-          "quest_key"
-        ]
+      "object_id": {
+        "type": 0.0,
+        "value": "env_chest"
+      },
+      "object_name": {
+        "type": 0.0,
+        "value": "Treasure Chest"
+      },
+      "scale_factor": {
+        "type": 1.0,
+        "value": 1.0
       }
-    }
-  },
-  "Label": {
-    "DialogueText": {
-      "dialogue_id": {
-        "type": 0,
-        "value": "npc_greeting"
+    },
+    "ItemBase": {
+      "color": {
+        "type": 0.0,
+        "value": "#ffffff"
       },
-      "character_name": {
-        "type": 0,
-        "value": "NPC Name"
-      },
-      "auto_advance": {
-        "type": 2,
+      "is_quest_item": {
+        "type": 2.0,
         "value": false
       },
-      "display_time": {
-        "type": 1,
-        "value": 3.0
+      "item_description": {
+        "type": 0.0,
+        "value": "A basic item"
+      },
+      "item_id": {
+        "type": 0.0,
+        "value": "generic_item"
+      },
+      "item_name": {
+        "type": 0.0,
+        "value": "Generic Item"
+      },
+      "scale_factor": {
+        "type": 1.0,
+        "value": 1.0
+      },
+      "tags": {
+        "type": 3.0,
+        "value": [
+          "item"
+        ]
+      }
+    },
+    "QuestItem": {
+      "_extends": {
+        "type": 0.0,
+        "value": "ItemBase"
+      },
+      "is_quest_item": {
+        "type": 2.0,
+        "value": true
+      },
+      "item_description": {
+        "type": 0.0,
+        "value": "An ancient amulet needed to complete the main quest"
+      },
+      "item_id": {
+        "type": 0.0,
+        "value": "quest_amulet"
+      },
+      "item_name": {
+        "type": 0.0,
+        "value": "Ancient Amulet"
+      },
+      "quest_id": {
+        "type": 0.0,
+        "value": "main_quest_3"
+      }
+    },
+    "WeaponItem": {
+      "_extends": {
+        "type": 0.0,
+        "value": "ItemBase"
+      },
+      "color": {
+        "type": 0.0,
+        "value": "#88ffff"
+      },
+      "damage": {
+        "type": 1.0,
+        "value": 25.0
+      },
+      "item_description": {
+        "type": 0.0,
+        "value": "A powerful sword with magical properties"
+      },
+      "item_id": {
+        "type": 0.0,
+        "value": "weapon_sword"
+      },
+      "item_name": {
+        "type": 0.0,
+        "value": "Magic Sword"
+      },
+      "tags": {
+        "type": 3.0,
+        "value": [
+          "weapon",
+          "sword",
+          "magical"
+        ]
+      },
+      "weapon_type": {
+        "type": 0.0,
+        "value": "sword"
       }
     }
   }

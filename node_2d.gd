@@ -29,20 +29,30 @@ func _ready():
 		var damage = MDUtils.get_number(self, "damage", 0)
 		print("  Damage: " + str(damage))
 
+		# For consumables
+		var healing = MDUtils.get_number(self, "healing_amount", 0)
+		if healing > 0:
+			print("  Healing: " + str(healing))
+
 		# Get a boolean with default value
 		var is_quest_item = MDUtils.get_bool(self, "is_quest_item", false)
 		print("  Is Quest Item: " + str(is_quest_item))
+
+		# For consumables
+		var is_consumable = MDUtils.get_bool(self, "is_consumable", false)
+		if is_consumable:
+			print("  This item is consumable")
 
 		# Get an array with default value
 		var tags = MDUtils.get_array(self, "tags", [])
 		print("  Tags: " + str(tags))
 
-		# Check if metadata exists
-		if MDUtils.has_all(self, ["item_name", "damage"]):
-			print("  Item has both name and damage properties")
-
-		# Get all metadata as dictionary
-		var all_metadata = MDUtils.get_all_metadata(self)
-		print("  All metadata: " + str(all_metadata))
+		# Show inheritance in action
+		print("\nTemplate Inheritance Example:")
+		print("  This item inherits base properties but may override some:")
+		print("  - Base scale: " + str(MDUtils.get_number(self, "scale_factor", 1.0)))
+		print("  - Is quest item: " + str(MDUtils.get_bool(self, "is_quest_item", false)))
+		print("  - Item type: " + MDUtils.get_string(self, "weapon_type",
+			MDUtils.get_string(self, "consumable_type", "basic")))
 
 	print("===========================")

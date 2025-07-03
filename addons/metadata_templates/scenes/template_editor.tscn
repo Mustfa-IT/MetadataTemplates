@@ -94,44 +94,27 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_lqkm3")
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="Label" type="Label" parent="VBoxContainer/TemplatesPanel/VBoxContainer"]
+[node name="TemplateHeader" type="HBoxContainer" parent="VBoxContainer/TemplatesPanel/VBoxContainer"]
 layout_mode = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="VBoxContainer/TemplatesPanel/VBoxContainer/TemplateHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 16
 text = "Available Templates"
-horizontal_alignment = 1
+
+[node name="AddTemplateButton" type="Button" parent="VBoxContainer/TemplatesPanel/VBoxContainer/TemplateHeader"]
+layout_mode = 2
+tooltip_text = "Add new template"
+icon_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="VBoxContainer/TemplatesPanel/VBoxContainer"]
 layout_mode = 2
 
-[node name="TemplatesList" type="ItemList" parent="VBoxContainer/TemplatesPanel/VBoxContainer"]
-custom_minimum_size = Vector2(0, 150)
+[node name="TemplatesContainer" type="VBoxContainer" parent="VBoxContainer/TemplatesPanel/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-tooltip_text = "Double-click a template to edit it"
-allow_search = false
-
-[node name="ButtonContainer" type="HBoxContainer" parent="VBoxContainer/TemplatesPanel/VBoxContainer"]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="NewTemplateButton" type="Button" parent="VBoxContainer/TemplatesPanel/VBoxContainer/ButtonContainer"]
-layout_mode = 2
-tooltip_text = "Create a new template"
-theme_override_constants/h_separation = 8
-text = "New Template"
-
-[node name="EditTemplateButton" type="Button" parent="VBoxContainer/TemplatesPanel/VBoxContainer/ButtonContainer"]
-layout_mode = 2
-tooltip_text = "Edit the selected template"
-theme_override_constants/h_separation = 8
-text = "Edit Template"
-
-[node name="DeleteTemplateButton" type="Button" parent="VBoxContainer/TemplatesPanel/VBoxContainer/ButtonContainer"]
-layout_mode = 2
-tooltip_text = "Delete the selected template"
-theme_override_constants/h_separation = 8
-text = "Delete Template"
 
 [node name="HSeparator3" type="HSeparator" parent="VBoxContainer"]
 layout_mode = 2
@@ -168,14 +151,44 @@ layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "Enter template name"
 
+[node name="ParentTemplateContainer" type="HBoxContainer" parent="VBoxContainer/MetadataEditor/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/MetadataEditor/VBoxContainer/ParentTemplateContainer"]
+layout_mode = 2
+text = "Extends Template:"
+
+[node name="ParentTemplateOption" type="OptionButton" parent="VBoxContainer/MetadataEditor/VBoxContainer/ParentTemplateContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Select a parent template to inherit properties from"
+
+[node name="ShowInheritedToggle" type="CheckButton" parent="VBoxContainer/MetadataEditor/VBoxContainer/ParentTemplateContainer"]
+layout_mode = 2
+tooltip_text = "Show properties inherited from parent template"
+text = "Show Inherited"
+
 [node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/MetadataEditor/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+follow_focus = true
 
-[node name="MetadataList" type="VBoxContainer" parent="VBoxContainer/MetadataEditor/VBoxContainer/ScrollContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/MetadataEditor/VBoxContainer/ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="MetadataList" type="VBoxContainer" parent="VBoxContainer/MetadataEditor/VBoxContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="ParentMetadataList" type="VBoxContainer" parent="VBoxContainer/MetadataEditor/VBoxContainer/ScrollContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
 [node name="HBoxContainer2" type="HBoxContainer" parent="VBoxContainer/MetadataEditor/VBoxContainer"]

@@ -11,6 +11,9 @@ const TYPE_NUMBER = 1
 const TYPE_BOOLEAN = 2
 const TYPE_ARRAY = 3
 
+# Special metadata keys
+const EXTENDS_KEY = "_extends"
+
 var templates = {}
 var template_file_path = TEMPLATES_DIR + TEMPLATES_FILE
 var last_modified_time = 0
@@ -233,26 +236,104 @@ func get_templates_for_node_type(node_type: String) -> Dictionary:
 func get_all_node_types() -> Array:
 	return templates.keys()
 
-func apply_template_to_node(node: Node, node_type: String, template_name: String) -> void:
+func apply_template_to_node(node: Node, node_type: String, template_name: String, clear_existing: bool = true) -> void:
 	if not templates.has(node_type) or not templates[node_type].has(template_name):
 		return
 
 	var template = templates[node_type][template_name]
 
-	# Clear existing metadata first if requested
-	# (This could be optional based on user preference)
-	var existing_keys = node.get_meta_list()
-	for key in existing_keys:
-		node.remove_meta(key)
+	# Clear existing metadata if requested
+	if clear_existing:
+		var existing_keys = node.get_meta_list()
+		for key in existing_keys:
+			node.remove_meta(key)
 
-	# Apply the template metadata
+	# Check if this template extends another template
+	var extends_template = null
+	if template.has(EXTENDS_KEY) and template[EXTENDS_KEY] is Dictionary and template[EXTENDS_KEY].has("value"):
+		extends_template = template[EXTENDS_KEY].value
+
+	# Apply parent template first if it exists
+	if extends_template != null and extends_template is String and extends_template != "":
+		# Apply the parent template first (without clearing existing metadata)
+		apply_template_to_node(node, node_type, extends_template, false)
+
+	# Apply the template metadata (will override parent values if they exist)
 	for key in template:
+		# Skip the extends key, it's not actual metadata
+		if key == EXTENDS_KEY:
+			continue
+
 		if template[key] is Dictionary and template[key].has("value"):
 			# New format with type information
 			node.set_meta(key, template[key].value)
 		else:
 			# Legacy format fallback
 			node.set_meta(key, template[key])
+
+# Helper function to get all template names for a node type, including inherited ones
+func get_available_parent_templates(node_type: String, current_template: String = "") -> Array:
+	var result = []
+
+	if templates.has(node_type):
+		# Add all templates for this node type except the current one
+		for template_name in templates[node_type].keys():
+			if template_name != current_template:
+				# Check for circular inheritance
+				if not would_cause_circular_inheritance(node_type, current_template, template_name):
+					result.append(template_name)
+
+	return result
+
+# Check if adding a parent would cause circular inheritance
+func would_cause_circular_inheritance(node_type: String, child_template: String, parent_template: String) -> bool:
+	# If we're not currently editing a template, there's no risk of circular inheritance
+	if child_template.is_empty():
+		return false
+
+	var current = parent_template
+	var max_depth = 20 # Safety limit for recursion
+	var depth = 0
+
+	while current != "" and depth < max_depth:
+		# If we found our starting template in the inheritance chain, we have a cycle
+		if current == child_template:
+			return true
+
+		# Get the parent of current template
+		var current_template = templates[node_type].get(current, {})
+		if current_template.has(EXTENDS_KEY) and current_template[EXTENDS_KEY] is Dictionary and current_template[EXTENDS_KEY].has("value"):
+			current = current_template[EXTENDS_KEY].value
+		else:
+			break
+
+		depth += 1
+
+	return false
+
+# Get a template with all inherited properties merged in
+func get_merged_template(node_type: String, template_name: String) -> Dictionary:
+	if not templates.has(node_type) or not templates[node_type].has(template_name):
+		return {}
+
+	var template = templates[node_type][template_name]
+	var result = {}
+
+	# Check if this template extends another template
+	var extends_template = null
+	if template.has(EXTENDS_KEY) and template[EXTENDS_KEY] is Dictionary and template[EXTENDS_KEY].has("value"):
+		extends_template = template[EXTENDS_KEY].value
+
+	# Start with parent template properties if it exists
+	if extends_template != null and extends_template is String and extends_template != "":
+		result = get_merged_template(node_type, extends_template)
+
+	# Override with this template's properties
+	for key in template:
+		if key != EXTENDS_KEY: # Skip the extends key
+			result[key] = template[key]
+
+	return result
 
 # Create a node type entry if it doesn't exist, but don't save it until
 # a template is actually created for it
