@@ -271,6 +271,10 @@ func apply_template_to_node(node: Node, node_type: String, template_name: String
 			# Legacy format fallback
 			node.set_meta(key, template[key])
 
+	# Add template tracking metadata
+	node.set_meta("_template_name", template_name)
+	node.set_meta("_template_type", node_type)
+
 # Helper function to get all template names for a node type, including inherited ones
 func get_available_parent_templates(node_type: String, current_template: String = "") -> Array:
 	var result = []

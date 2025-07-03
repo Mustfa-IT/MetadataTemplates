@@ -250,24 +250,54 @@ func set_selected_node(node: Node) -> void:
 			template_list_manager.set_node_type(current_node_type)
 
 func show_apply_templates_dialog(node: Node) -> void:
-	if not node:
-		return
+		if not node:
+				return
 
-	var node_type = node.get_class()
-	var templates = template_manager.get_templates_for_node_type(node_type)
+		# Store the selected node for later use
+		selected_node = node
+		var node_type = node.get_class()
 
-	template_options.clear()
-	for template_name in templates:
-		template_options.add_item(template_name)
+		# Get templates for this node type
+		var templates = template_manager.get_templates_for_node_type(node_type)
 
-	if template_options.item_count > 0:
-		apply_template_dialog.popup_centered()
+		# Clear and populate the template options
+		template_options.clear()
+
+		for template_name in templates:
+				template_options.add_item(template_name)
+
+		# Connect dialog confirmed signal if not already connected
+		if not apply_template_dialog.is_connected("confirmed", _on_apply_template_dialog_confirmed):
+				apply_template_dialog.connect("confirmed", _on_apply_template_dialog_confirmed)
+
+		# Only show the dialog if we have templates available
+		if template_options.item_count > 0:
+				apply_template_dialog.popup_centered()
+		else:
+				var parent = get_parent()
+				if parent and parent.has_method("show_info_dialog"):
+						parent.show_info_dialog("No Templates Available",
+								"No metadata templates found for this node type: " + node_type)
 
 func _on_apply_template_dialog_confirmed() -> void:
-	if selected_node and template_options.get_selected_items().size() > 0:
-		var template_name = template_options.get_item_text(template_options.get_selected_items()[0])
+		if not is_instance_valid(selected_node):
+				return
+
+		# Get the selected template name - FIXED: using get_selected_items() instead of get_selected_id()
+		var selected_items = template_options.get_selected_items()
+		if selected_items.size() == 0:
+				# Fall back to first item if nothing is selected
+				if template_options.item_count > 0:
+						selected_items = [0] # Use the first item
+				else:
+						return
+
+		var template_name = template_options.get_item_text(selected_items[0])
 		var node_type = selected_node.get_class()
-		template_manager.apply_template_to_node(selected_node, node_type, template_name)
+
+		# Apply the template to the node
+		if template_manager:
+				template_manager.apply_template_to_node(selected_node, node_type, template_name)
 
 func _open_template_editor(template_name: String) -> void:
 	if current_node_type.is_empty() or template_name.is_empty():

@@ -6,6 +6,8 @@ var template_editor_instance
 var current_selection: Node
 var metadata_button: Button
 var info_dialog: AcceptDialog
+var preview_button: Button
+var template_preview_dialog
 
 func _enter_tree() -> void:
 	print("Metadata Templates Plugin: Initializing...")
@@ -67,6 +69,26 @@ func _enter_tree() -> void:
 	metadata_button.connect("pressed", _on_apply_templates_button_pressed)
 	add_control_to_container(EditorPlugin.CONTAINER_CANVAS_EDITOR_MENU, metadata_button)
 
+	# Add Preview button to the editor
+	preview_button = Button.new()
+	preview_button.text = "Template Preview"
+	preview_button.tooltip_text = "Show all nodes with templates applied"
+	preview_button.connect("pressed", _on_preview_button_pressed)
+	add_control_to_container(EditorPlugin.CONTAINER_CANVAS_EDITOR_MENU, preview_button)
+
+	# Load the Template Preview Dialog
+	var preview_dialog_scene = load("res://addons/metadata_templates/scenes/template_preview_dialog.tscn")
+	if preview_dialog_scene:
+		template_preview_dialog = preview_dialog_scene.instantiate()
+		get_editor_interface().get_base_control().add_child(template_preview_dialog)
+		template_preview_dialog.hide()
+
+		# Set references
+		if template_preview_dialog.has_method("set_template_manager"):
+			template_preview_dialog.set_template_manager(template_manager)
+		if template_preview_dialog.has_method("set_template_editor"):
+			template_preview_dialog.set_template_editor(template_editor_instance)
+
 	# Create a reusable dialog for information messages
 	info_dialog = AcceptDialog.new()
 	info_dialog.exclusive = true
@@ -95,6 +117,15 @@ func _exit_tree() -> void:
 	if metadata_button:
 		remove_control_from_container(EditorPlugin.CONTAINER_CANVAS_EDITOR_MENU, metadata_button)
 		metadata_button.queue_free()
+
+	# Remove the preview button
+	if preview_button:
+		remove_control_from_container(EditorPlugin.CONTAINER_CANVAS_EDITOR_MENU, preview_button)
+		preview_button.queue_free()
+
+	# Remove preview dialog
+	if template_preview_dialog:
+		template_preview_dialog.queue_free()
 
 	# Remove dialog
 	if info_dialog:
@@ -135,21 +166,25 @@ func _on_selection_changed() -> void:
 
 func _on_apply_templates_button_pressed() -> void:
 	if current_selection:
-		var templates = template_manager.get_templates_for_node_type(current_selection.get_class())
-		if templates.size() > 0:
-			# Show a popup to select which template to apply
-			template_editor_instance.show_apply_templates_dialog(current_selection)
-		else:
-			# Make sure dialog is initialized before using it
-			if not is_instance_valid(info_dialog) or info_dialog == null:
-				info_dialog = AcceptDialog.new()
-				info_dialog.exclusive = true
-				get_editor_interface().get_base_control().add_child(info_dialog)
+		template_editor_instance.show_apply_templates_dialog(current_selection)
 
-			# Now safely set properties and show the dialog
-			info_dialog.title = "No templates available"
-			info_dialog.dialog_text = "No metadata templates found for this node type: " + current_selection.get_class()
-			info_dialog.popup_centered()
+# Function to open the template preview dialog
+func _on_preview_button_pressed() -> void:
+	if template_preview_dialog:
+		template_preview_dialog.populate(get_editor_interface())
+
+# Helper method for displaying information dialogs from the editor
+func show_info_dialog(title: String, message: String) -> void:
+	# Make sure dialog is initialized
+	if not is_instance_valid(info_dialog):
+		info_dialog = AcceptDialog.new()
+		info_dialog.exclusive = true
+		get_editor_interface().get_base_control().add_child(info_dialog)
+
+	# Set properties and show the dialog
+	info_dialog.title = title
+	info_dialog.dialog_text = message
+	info_dialog.popup_centered()
 
 # Handle templates being reloaded from external file changes
 func _on_templates_reloaded() -> void:

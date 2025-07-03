@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://14pnxgpq84cx"]
+[gd_scene load_steps=5 format=3 uid="uid://14pnxgpq84cx"]
 
 [ext_resource type="Script" uid="uid://ctpumj48p0rax" path="res://addons/metadata_templates/scenes/template_editor.gd" id="1_mtu0t"]
 
@@ -33,6 +33,10 @@ corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
+
+[sub_resource type="SVGTexture" id="SVGTexture_piwec"]
+_source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><path fill=\"#ff5d5d\" d=\"M2 1v8.586l1.293-1.293a1 1 0 0 1 1.414 0L7 10.587l2.293-2.293a1 1 0 0 1 1.414 0L13 10.586l1-1V6H9V1H2zm8 0v4h4zm-6 9.414-2 2V15h12v-2.586l-.293.293a1 1 0 0 1-1.414 0L10 10.414l-2.293 2.293a1 1 0 0 1-1.414 0L4 10.414z\"/></svg>
+"
 
 [node name="TemplateEditor" type="MarginContainer"]
 custom_minimum_size = Vector2(550, 400)
@@ -113,6 +117,8 @@ text = "Available Templates"
 [node name="AddTemplateButton" type="Button" parent="VBoxContainer/VSplitContainer/TemplatesPanel/VBoxContainer/TemplateHeader"]
 layout_mode = 2
 tooltip_text = "Add new template"
+icon = SubResource("SVGTexture_piwec")
+flat = true
 icon_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="VBoxContainer/VSplitContainer/TemplatesPanel/VBoxContainer"]
