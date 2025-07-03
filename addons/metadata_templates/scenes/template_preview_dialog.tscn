@@ -40,7 +40,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_kdtmn")
 
 [node name="NodeList" type="Tree" parent="HSplitContainer/LeftPanel"]
 layout_mode = 2
-columns = 2
+columns = 1
 select_mode = 1
 scroll_horizontal_enabled = false
 

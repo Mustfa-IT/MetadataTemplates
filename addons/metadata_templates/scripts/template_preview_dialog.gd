@@ -31,8 +31,9 @@ func _ready() -> void:
 	# Fix window behavior
 	unresizable = false
 	exclusive = false
-	transient = true  # Make it stay on top of the editor window
-	always_on_top = true
+	transient = true # Make it stay tied to the editor window
+	# The line below causes the error - remove it completely, not just comment it out
+	# always_on_top = true  # This conflicts with transient=true
 
 	# Connect the close request signal
 	connect("close_requested", _on_close_requested)
@@ -110,7 +111,7 @@ func _find_nodes_with_templates(node: Node, parent_item) -> void:
 
 		# Store the node in our map
 		var node_item = node_list.create_item(parent_item)
-		node_item.set_text(0, node.name + " (" + template_name + ")")
+		node_item.set_text(0, node.name + " (" + template_name + ")") # Only use column 0
 		node_item.set_metadata(0, node)
 		nodes_with_templates[node] = {
 			"template_name": template_name,
@@ -186,7 +187,7 @@ func _display_node_metadata(node: Node) -> void:
 	for key in meta_list:
 		var value = node.get_meta(key)
 		var type_name = "Unknown"
-		var type_id = 0  # Default to string
+		var type_id = 0 # Default to string
 
 		# Determine the type
 		if value is String:
