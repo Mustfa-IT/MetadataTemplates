@@ -31,6 +31,11 @@ var exporters = {}
 var default_importer = null
 var default_exporter = null
 
+# Service registry and backends
+var service_registry: MetadataServiceRegistry = null
+var _active_backend: MetadataBackend = null
+var _initialized: bool = false
+
 # Signal for when templates are reloaded from external changes
 signal templates_reloaded
 
@@ -47,20 +52,90 @@ func initialize() -> void:
 		if not dir.dir_exists("data"):
 			dir.make_dir("data")
 
-	# Register importers and exporters
+	# Initialize service registry
+	_init_service_registry()
+
+	# Register default backend and serializer
+	_register_default_services()
+
+	# Register importers and exporters (legacy)
 	_register_importers_and_exporters()
 
-	# Load existing templates
-	load_templates()
+	# Try loading templates through backend
+	if _active_backend:
+		templates = _active_backend.load_templates()
+
+		# Connect to backend's templates_modified signal
+		if not _active_backend.is_connected("templates_modified", _on_backend_templates_modified):
+			_active_backend.connect("templates_modified", _on_backend_templates_modified)
+	else:
+		# Fall back to legacy loading
+		load_templates()
 
 	# Clean up any empty node types
 	templates.clean_empty_node_types()
 
-	# Setup file watching
-	setup_file_watcher()
+	# Only set up legacy file watcher if no backend or backend doesn't support watching
+	if not _active_backend or not _active_backend.has_capability(MetadataBackend.CAPABILITY_WATCH):
+		# Setup file watching
+		setup_file_watcher()
 
 	# Store initial modification time
 	update_last_modified_time()
+
+	_initialized = true
+
+func _init_service_registry() -> void:
+	if not service_registry:
+		service_registry = MetadataServiceRegistry.new()
+
+		# Connect to signals
+		service_registry.connect("active_service_changed", _on_active_service_changed)
+
+func _register_default_services() -> void:
+	# Create and register the default JSON serializer
+	var json_serializer = JSONSerializationService.new()
+	service_registry.register_service(MetadataServiceRegistry.SERVICE_SERIALIZER, "json", json_serializer)
+
+	# Create and register the local JSON backend with the serializer
+	var local_backend = LocalJSONBackend.new()
+	local_backend.initialize({
+		"templates_dir": TEMPLATES_DIR,
+		"templates_file": TEMPLATES_FILE,
+		"serializer": json_serializer
+	})
+	service_registry.register_service(MetadataServiceRegistry.SERVICE_BACKEND, "local_json", local_backend)
+
+	# Set active backend
+	_active_backend = service_registry.get_active_service(MetadataServiceRegistry.SERVICE_BACKEND)
+
+func _on_active_service_changed(type: String, id: String, service) -> void:
+	if type == MetadataServiceRegistry.SERVICE_BACKEND:
+		# Clean up old backend
+		if _active_backend and _active_backend.is_connected("templates_modified", _on_backend_templates_modified):
+			_active_backend.disconnect("templates_modified", _on_backend_templates_modified)
+			if _active_backend.has_capability(MetadataBackend.CAPABILITY_WATCH):
+				_active_backend.stop_watching()
+
+		# Set new backend
+		_active_backend = service
+
+		if _active_backend:
+			# Connect to new backend's signals
+			if not _active_backend.is_connected("templates_modified", _on_backend_templates_modified):
+				_active_backend.connect("templates_modified", _on_backend_templates_modified)
+
+			# Load templates from new backend
+			templates = _active_backend.load_templates()
+			emit_signal("templates_reloaded")
+
+			# Start watching if supported
+			if _active_backend.has_capability(MetadataBackend.CAPABILITY_WATCH):
+				_active_backend.start_watching()
+
+func _on_backend_templates_modified(new_templates: TemplateDataStructure) -> void:
+	templates = new_templates
+	emit_signal("templates_reloaded")
 
 func _register_importers_and_exporters() -> void:
 	# Register importers
@@ -73,6 +148,7 @@ func _register_importers_and_exporters() -> void:
 	exporters["json"] = json_exporter
 	default_exporter = json_exporter
 
+# Legacy file watching code - kept for backward compatibility
 func setup_file_watcher() -> void:
 	# Create a timer for checking file changes
 	file_check_timer = Timer.new()
@@ -142,7 +218,14 @@ func reload_templates_from_disk() -> void:
 	file_watch_enabled = true
 
 func load_templates() -> void:
-	# Use the appropriate importer based on file extension
+	# Try to load templates through backend if available
+	if _active_backend:
+		var loaded_templates = _active_backend.load_templates()
+		if not loaded_templates.is_empty():
+			templates = loaded_templates
+			return
+
+	# Fall back to legacy loading if no backend or backend failed
 	var file_extension = template_file_path.get_extension().to_lower()
 	var importer = importers.get(file_extension, default_importer)
 
@@ -163,6 +246,15 @@ func save_templates() -> void:
 	# Clean empty node types before saving
 	templates.clean_empty_node_types()
 
+	# Try to save templates through backend if available
+	if _active_backend and _active_backend.has_capability(MetadataBackend.CAPABILITY_WRITE):
+		if _active_backend.save_templates(templates):
+			# Update the last modified time after saving if not using backend's watch capability
+			if not _active_backend.has_capability(MetadataBackend.CAPABILITY_WATCH):
+				update_last_modified_time()
+			return
+
+	# Fall back to legacy saving
 	# Temporarily disable file watching to prevent recursive reload
 	file_watch_enabled = false
 
@@ -404,9 +496,47 @@ func get_export_file_filters() -> PackedStringArray:
 			filters.append("*." + ext + " ; " + ext.to_upper() + " Files")
 	return filters
 
+# Function to check if a backend exists and is active
+func has_active_backend() -> bool:
+	return _active_backend != null
+
+# Get available backends
+func get_available_backends() -> Dictionary:
+	var backends = {}
+	var backend_services = service_registry.get_services(MetadataServiceRegistry.SERVICE_BACKEND)
+
+	for id in backend_services:
+		var backend = backend_services[id]
+		backends[id] = backend.get_backend_name()
+
+	return backends
+
+# Switch to a different backend
+func switch_backend(backend_id: String) -> bool:
+	if service_registry.has_service(MetadataServiceRegistry.SERVICE_BACKEND, backend_id):
+		return service_registry.set_active_service(MetadataServiceRegistry.SERVICE_BACKEND, backend_id)
+	return false
+
+# Register a backend
+func register_backend(backend_id: String, backend: MetadataBackend) -> bool:
+	return service_registry.register_service(MetadataServiceRegistry.SERVICE_BACKEND, backend_id, backend)
+
+# Register a serializer
+func register_serializer(serializer_id: String, serializer: SerializationService) -> bool:
+	return service_registry.register_service(MetadataServiceRegistry.SERVICE_SERIALIZER, serializer_id, serializer)
+
+# Register a validator
+func register_validator(validator_id: String, validator: ValidationService) -> bool:
+	return service_registry.register_service(MetadataServiceRegistry.SERVICE_VALIDATOR, validator_id, validator)
+
 # Clean up resources when this object is destroyed
 func _notification(what):
 	if what == NOTIFICATION_PREDELETE:
+		# Clean up file timer
 		if file_check_timer and is_instance_valid(file_check_timer):
 			file_check_timer.stop()
 			file_check_timer.queue_free()
+
+		# Clean up backend if it supports watching
+		if _active_backend and _active_backend.has_capability(MetadataBackend.CAPABILITY_WATCH):
+			_active_backend.stop_watching()

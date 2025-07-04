@@ -7,6 +7,10 @@ This document provides a comprehensive API reference for the Metadata Templates 
 - [MetadataUtils (MDUtils)](#metadatautils-mdutils)
 - [TemplateManager](#templatemanager)
 - [TemplateDataStructure](#templatedatastructure)
+- [MetadataServiceRegistry](#metadataserviceregistry)
+- [MetadataBackend](#metadatabackend)
+- [SerializationService](#serializationservice)
+- [ValidationService](#validationservice)
 - [TemplateImporter](#templateimporter)
 - [TemplateExporter](#templateexporter)
 - [Supporting Classes](#supporting-classes)
@@ -289,6 +293,38 @@ func get_export_file_filters() -> PackedStringArray
 ```
 Returns file filters for export dialog.
 
+### Service Management Methods
+
+```gdscript
+func has_active_backend() -> bool
+```
+Returns `true` if there's an active backend available.
+
+```gdscript
+func get_available_backends() -> Dictionary
+```
+Returns a dictionary mapping backend IDs to their names.
+
+```gdscript
+func switch_backend(backend_id: String) -> bool
+```
+Switches to a different backend by ID. Returns `true` if successful.
+
+```gdscript
+func register_backend(backend_id: String, backend: MetadataBackend) -> bool
+```
+Registers a new backend with the given ID. Returns `true` if successful.
+
+```gdscript
+func register_serializer(serializer_id: String, serializer: SerializationService) -> bool
+```
+Registers a new serializer with the given ID. Returns `true` if successful.
+
+```gdscript
+func register_validator(validator_id: String, validator: ValidationService) -> bool
+```
+Registers a new validator with the given ID. Returns `true` if successful.
+
 ### Usage Examples
 
 ```gdscript
@@ -450,6 +486,407 @@ var templates_copy = templates.duplicate()
 ```
 
 ---
+
+## MetadataServiceRegistry
+
+The `MetadataServiceRegistry` class manages all plugin services and their dependencies.
+
+### Constants
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `SERVICE_BACKEND` | "backend" | Identifier for backend services |
+| `SERVICE_SERIALIZER` | "serializer" | Identifier for serializer services |
+| `SERVICE_VALIDATOR` | "validator" | Identifier for validator services |
+| `SERVICE_CONVERTER` | "converter" | Identifier for converter services |
+
+### Signals
+
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `service_registered` | type, id, service | Emitted when a service is registered |
+| `active_service_changed` | type, id, service | Emitted when an active service changes |
+
+### Methods
+
+```gdscript
+func register_service(type: String, id: String, service) -> bool
+```
+Registers a service with the given type and ID. Returns `true` if successful.
+
+```gdscript
+func set_active_service(type: String, id: String) -> bool
+```
+Sets the active service for a particular type. Returns `true` if successful.
+
+```gdscript
+func set_default_service(type: String, id: String) -> bool
+```
+Sets the default service for a particular type. Returns `true` if successful.
+
+```gdscript
+func get_active_service(type: String)
+```
+Returns the active service for the given type, or `null` if none exists.
+
+```gdscript
+func get_service(type: String, id: String)
+```
+Returns a specific service by type and ID, or `null` if not found.
+
+```gdscript
+func get_services(type: String) -> Dictionary
+```
+Returns all services of a given type.
+
+```gdscript
+func get_active_service_id(type: String) -> String
+```
+Returns the ID of the active service for a given type.
+
+```gdscript
+func get_service_ids(type: String) -> Array
+```
+Returns an array of all service IDs for a given type.
+
+```gdscript
+func has_service(type: String, id: String) -> bool
+```
+Returns `true` if a service with the given type and ID exists.
+
+### Usage Example
+
+```gdscript
+# Create a service registry
+var registry = MetadataServiceRegistry.new()
+
+# Register a service
+var my_backend = MyCustomBackend.new()
+registry.register_service(MetadataServiceRegistry.SERVICE_BACKEND, "my_backend", my_backend)
+
+# Set it as active
+registry.set_active_service(MetadataServiceRegistry.SERVICE_BACKEND, "my_backend")
+
+# Get the active service
+var active_backend = registry.get_active_service(MetadataServiceRegistry.SERVICE_BACKEND)
+```
+
+## MetadataBackend
+
+The `MetadataBackend` class is the base class for all storage backends.
+
+### Constants
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `CAPABILITY_READ` | 1 << 0 | Backend supports reading templates |
+| `CAPABILITY_WRITE` | 1 << 1 | Backend supports writing templates |
+| `CAPABILITY_LIST` | 1 << 2 | Backend supports listing templates |
+| `CAPABILITY_DELETE` | 1 << 3 | Backend supports deleting templates |
+| `CAPABILITY_WATCH` | 1 << 4 | Backend supports watching for changes |
+| `CAPABILITY_REMOTE` | 1 << 5 | Backend accesses remote resources |
+
+### Signals
+
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `templates_modified` | templates | Emitted when templates are modified externally |
+
+### Methods
+
+```gdscript
+func get_backend_id() -> String
+```
+Returns the unique identifier for this backend.
+
+```gdscript
+func get_backend_name() -> String
+```
+Returns the human-readable name for this backend.
+
+```gdscript
+func get_capabilities() -> int
+```
+Returns a bitmask of the backend's capabilities.
+
+```gdscript
+func has_capability(capability: int) -> bool
+```
+Returns `true` if the backend has the specified capability.
+
+```gdscript
+func get_configuration_options() -> Array
+```
+Returns an array of configuration options for this backend.
+
+```gdscript
+func load_templates() -> TemplateDataStructure
+```
+Loads templates from the backend's storage.
+
+```gdscript
+func save_templates(templates: TemplateDataStructure) -> bool
+```
+Saves templates to the backend's storage. Returns `true` if successful.
+
+```gdscript
+func start_watching() -> void
+```
+Starts watching for external changes to the templates.
+
+```gdscript
+func stop_watching() -> void
+```
+Stops watching for external changes.
+
+```gdscript
+func get_settings_ui() -> Control
+```
+Returns a UI control for configuring this backend, or `null` if none is available.
+
+```gdscript
+func initialize(config: Dictionary = {}) -> bool
+```
+Initializes the backend with the given configuration. Returns `true` if successful.
+
+### Implementing a Custom Backend
+
+```gdscript
+@tool
+class_name MyRemoteBackend
+extends MetadataBackend
+
+var _api_url: String = ""
+var _api_key: String = ""
+
+func get_backend_id() -> String:
+    return "remote_api"
+
+func get_backend_name() -> String:
+    return "Remote API Backend"
+
+func get_capabilities() -> int:
+    return CAPABILITY_READ | CAPABILITY_WRITE | CAPABILITY_REMOTE
+
+func get_configuration_options() -> Array:
+    return [
+        {
+            "name": "API URL",
+            "property": "api_url",
+            "type": TYPE_STRING,
+            "default_value": "https://api.example.com/templates"
+        },
+        {
+            "name": "API Key",
+            "property": "api_key",
+            "type": TYPE_STRING,
+            "default_value": ""
+        }
+    ]
+
+func initialize(config: Dictionary = {}) -> bool:
+    if config.has("api_url"):
+        _api_url = config.api_url
+    if config.has("api_key"):
+        _api_key = config.api_key
+    return !_api_url.is_empty()
+
+func load_templates() -> TemplateDataStructure:
+    # Implementation to load from remote API
+    # This is a simplified example
+    var result = TemplateDataStructure.new()
+    var http = HTTPRequest.new()
+    # ... HTTP request logic ...
+    return result
+
+func save_templates(templates: TemplateDataStructure) -> bool:
+    # Implementation to save to remote API
+    # This is a simplified example
+    var http = HTTPRequest.new()
+    # ... HTTP request logic ...
+    return true
+```
+
+## SerializationService
+
+The `SerializationService` class is the base class for all serialization services.
+
+### Signals
+
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `settings_changed` | none | Emitted when serialization settings are changed |
+
+### Methods
+
+```gdscript
+func get_serializer_id() -> String
+```
+Returns the unique identifier for this serializer.
+
+```gdscript
+func get_serializer_name() -> String
+```
+Returns the human-readable name for this serializer.
+
+```gdscript
+func get_supported_extensions() -> PackedStringArray
+```
+Returns the file extensions supported by this serializer.
+
+```gdscript
+func get_configuration_options() -> Array
+```
+Returns an array of configuration options for this serializer.
+
+```gdscript
+func serialize(data: Dictionary, options: Dictionary = {}) -> String
+```
+Converts a data dictionary to a string representation.
+
+```gdscript
+func deserialize(text: String, options: Dictionary = {}) -> Dictionary
+```
+Converts a string representation back to a data dictionary.
+
+```gdscript
+func get_file_filters() -> PackedStringArray
+```
+Returns file filters for open/save dialogs.
+
+```gdscript
+func get_settings_ui() -> Control
+```
+Returns a UI control for configuring this serializer, or `null` if none is available.
+
+```gdscript
+func initialize(settings: Dictionary = {}) -> bool
+```
+Initializes the serializer with the given settings. Returns `true` if successful.
+
+### Implementing a Custom Serializer
+
+```gdscript
+@tool
+class_name MyXMLSerializer
+extends SerializationService
+
+func get_serializer_id() -> String:
+    return "xml"
+
+func get_serializer_name() -> String:
+    return "XML Serializer"
+
+func get_supported_extensions() -> PackedStringArray:
+    return PackedStringArray(["xml"])
+
+func get_configuration_options() -> Array:
+    return [
+        {
+            "name": "Use Attributes",
+            "property": "use_attributes",
+            "type": TYPE_BOOL,
+            "default_value": true
+        }
+    ]
+
+func serialize(data: Dictionary, options: Dictionary = {}) -> String:
+    # Implementation to convert dictionary to XML string
+    # This is a simplified example
+    var xml = "<templates>\n"
+    # ... conversion logic ...
+    xml += "</templates>"
+    return xml
+
+func deserialize(text: String, options: Dictionary = {}) -> Dictionary:
+    # Implementation to parse XML back to dictionary
+    # This is a simplified example
+    var result = {}
+    # ... parsing logic ...
+    return result
+
+func initialize(settings: Dictionary = {}) -> bool:
+    # Apply settings
+    return true
+```
+
+## ValidationService
+
+The `ValidationService` class is the base class for all validation services.
+
+### Methods
+
+```gdscript
+func get_validator_id() -> String
+```
+Returns the unique identifier for this validator.
+
+```gdscript
+func get_validator_name() -> String
+```
+Returns the human-readable name for this validator.
+
+```gdscript
+func validate_template(template_name: String, node_type: String, template_data: Dictionary) -> Dictionary
+```
+Validates a single template. Returns a dictionary with `valid` (boolean), `messages` (array), and `data` (dictionary).
+
+```gdscript
+func validate_import(templates: TemplateDataStructure) -> Dictionary
+```
+Validates an entire template collection. Returns a dictionary with `valid` (boolean), `messages` (array), and `data` (TemplateDataStructure).
+
+```gdscript
+func get_configuration_options() -> Array
+```
+Returns an array of configuration options for this validator.
+
+```gdscript
+func get_settings_ui() -> Control
+```
+Returns a UI control for configuring this validator, or `null` if none is available.
+
+### Implementing a Custom Validator
+
+```gdscript
+@tool
+class_name RequiredFieldValidator
+extends ValidationService
+
+var _required_fields = ["id", "name"]
+
+func get_validator_id() -> String:
+    return "required_fields"
+
+func get_validator_name() -> String:
+    return "Required Fields Validator"
+
+func validate_template(template_name: String, node_type: String, template_data: Dictionary) -> Dictionary:
+    var valid = true
+    var messages = []
+
+    # Check for each required field
+    for field in _required_fields:
+        if not template_data.has(field):
+            valid = false
+            messages.append("Missing required field: " + field)
+
+    return {
+        "valid": valid,
+        "messages": messages,
+        "data": template_data
+    }
+
+func get_configuration_options() -> Array:
+    return [
+        {
+            "name": "Required Fields (comma-separated)",
+            "property": "required_fields",
+            "type": TYPE_STRING,
+            "default_value": "id,name"
+        }
+    ]
+```
 
 ## TemplateImporter
 
@@ -636,6 +1073,14 @@ Shows properties inherited from parent templates.
 
 Manages the parent template selection UI.
 
+### LocalJSONBackend
+
+Implementation of `MetadataBackend` for local JSON files.
+
+### JSONSerializationService
+
+Implementation of `SerializationService` for JSON format.
+
 ---
 
 ## Common Patterns and Best Practices
@@ -697,6 +1142,40 @@ When adding custom types:
 2. Update UI components to display and edit the type
 3. Add utility methods for the new type
 4. Test thoroughly
+
+### Working with Services
+
+1. **Registering and Using Custom Backends**:
+   ```gdscript
+   # Create and register a custom backend
+   var my_backend = MyCustomBackend.new()
+   my_backend.initialize({"some_setting": "value"})
+   template_manager.register_backend("my_backend", my_backend)
+
+   # Switch to the custom backend
+   template_manager.switch_backend("my_backend")
+   ```
+
+2. **Creating a Backend with Custom Serializer**:
+   ```gdscript
+   # Create a serializer
+   var xml_serializer = MyXMLSerializer.new()
+   template_manager.register_serializer("xml", xml_serializer)
+
+   # Create a backend using that serializer
+   var backend = LocalJSONBackend.new()
+   backend.initialize({"serializer": xml_serializer})
+   template_manager.register_backend("xml_files", backend)
+   ```
+
+3. **Adding Validation**:
+   ```gdscript
+   # Create and register a validator
+   var validator = RequiredFieldValidator.new()
+   template_manager.register_validator("required_fields", validator)
+
+   # Validation happens automatically when appropriate
+   ```
 
 ---
 

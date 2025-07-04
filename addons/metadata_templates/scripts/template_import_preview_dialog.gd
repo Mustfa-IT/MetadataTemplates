@@ -103,14 +103,18 @@ func setup(manager: RefCounted, path: String) -> void:
 func _load_templates() -> void:
 		# Get existing templates
 		if template_manager:
-				existing_templates = template_manager.templates.duplicate(true)
+				# FIX: Extract the dictionary data from the TemplateDataStructure object
+				# instead of trying to use the object directly as a dictionary
+				var templates_object = template_manager.templates.duplicate()
+				existing_templates = templates_object.data
 		else:
 				existing_templates = {}
 
 		# Load imported templates
 		var validation = template_manager.validate_templates_file(import_path)
 		if validation.valid:
-				imported_templates = validation.data
+				# Similarly, extract the dictionary data from the TemplateDataStructure
+				imported_templates = validation.data.data
 		else:
 				imported_templates = {}
 
@@ -320,7 +324,7 @@ func _on_merge_strategy_changed(index: int) -> void:
 
 func _on_template_selected() -> void:
 		var selected_item = tree_view.get_selected()
-		if not selected_item or not selected_item.has_metadata(0):
+		if not selected_item or not selected_item.has_meta(0): # FIX: Change has_metadata to has_meta
 				details_panel.visible = false
 				return
 
@@ -330,7 +334,7 @@ func _on_template_selected() -> void:
 		for child in template_details.get_children():
 				child.queue_free()
 
-		var metadata = selected_item.get_metadata(0)
+		var metadata = selected_item.get_meta(0) # FIX: Change get_metadata to get_meta
 		if not metadata:
 				return
 

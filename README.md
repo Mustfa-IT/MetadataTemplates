@@ -15,6 +15,9 @@ The Metadata Templates plugin for Godot 4.x provides a powerful, reusable system
 - Convenient utilities for accessing metadata in your game code
 - External templates file that can be version controlled
 - Import/export templates for sharing across projects
+- Swappable backend storage services (local JSON, custom backends)
+- Customizable serialization services (JSON, custom formats)
+- Optional validation services for metadata
 
 ## Installation
 
@@ -166,6 +169,27 @@ When editing templates, you can specify the type for each metadata field, ensuri
 ### External Templates File
 
 Templates are stored in a JSON file at `res://addons/metadata_templates/templates/templates.json` which can be version controlled with your project. The plugin automatically detects external changes to this file and reloads templates as needed.
+
+### Swappable Backends
+
+The plugin now supports a service-based architecture that allows you to:
+
+1. **Change Storage Backends**: By default, templates are stored in a local JSON file, but you can create and register custom backends for:
+   - Remote storage (database, cloud)
+   - Alternative formats
+   - Encrypted storage
+
+2. **Custom Serialization**: Choose or create serialization services to control how templates are stored:
+   - Default JSON serialization
+   - Custom formats (XML, YAML, etc)
+   - Compressed or encrypted storage
+
+3. **Validation Services**: Add optional validation rules for metadata:
+   - Ensure data consistency
+   - Enforce project-specific requirements
+   - Convert between formats
+
+For developers interested in extending these capabilities, see the Developer Guide.
 
 ### Template Management
 
