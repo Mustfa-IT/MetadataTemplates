@@ -238,8 +238,10 @@ func apply_metadata(node: Node, metadata: Dictionary, clear_existing: bool = tru
 	for key in metadata:
 		var value = metadata[key]
 
-		# Handle the new format with type information
+		# Handle the typed format with type information
 		if value is Dictionary and value.has("type") and value.has("value"):
 			set_value(node, key, value.value, value.type)
 		else:
-			set_value(node, key, value)
+			push_warning("MetadataUtils: Metadata key '" + key + "' uses invalid format. Expected {type, value} dictionary.")
+			# Use string type as fallback for invalid format
+			set_value(node, key, str(value), TYPE_STRING)

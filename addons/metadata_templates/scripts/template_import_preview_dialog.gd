@@ -489,7 +489,7 @@ func _add_template_properties_comparison(imported_data: Dictionary, existing_dat
 						if existing_data[key] is Dictionary and existing_data[key].has("value"):
 								current_value.text = _format_value(existing_data[key].value)
 						else:
-								current_value.text = str(existing_data[key])
+								current_value.text = "(invalid format)"
 				else:
 						current_value.text = "(not set)"
 						current_value.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
@@ -501,12 +501,12 @@ func _add_template_properties_comparison(imported_data: Dictionary, existing_dat
 						if imported_data[key] is Dictionary and imported_data[key].has("value"):
 								new_value.text = _format_value(imported_data[key].value)
 						else:
-								new_value.text = str(imported_data[key])
+								new_value.text = "(invalid format)"
 
 						# Highlight changes
-						if existing_data.has(key):
-								var old_val = existing_data[key].value if existing_data[key] is Dictionary and existing_data[key].has("value") else existing_data[key]
-								var new_val = imported_data[key].value if imported_data[key] is Dictionary and imported_data[key].has("value") else imported_data[key]
+						if existing_data.has(key) and existing_data[key] is Dictionary and existing_data[key].has("value"):
+								var old_val = existing_data[key].value
+								var new_val = imported_data[key].value if imported_data[key] is Dictionary and imported_data[key].has("value") else null
 
 								if str(old_val) != str(new_val):
 										new_value.add_theme_color_override("font_color", Color(1.0, 0.7, 0.0))
@@ -556,7 +556,7 @@ func _add_template_properties_display(template_data: Dictionary) -> void:
 				if template_data[key] is Dictionary and template_data[key].has("value"):
 						value_label.text = _format_value(template_data[key].value)
 				else:
-						value_label.text = str(template_data[key])
+						value_label.text = "(invalid format)"
 				grid.add_child(value_label)
 
 func _format_value(value) -> String:

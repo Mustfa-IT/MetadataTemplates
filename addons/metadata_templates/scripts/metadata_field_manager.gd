@@ -153,7 +153,7 @@ func populate_from_template(template: Dictionary) -> void:
 		var value
 		var type_id = 0 # default to string
 
-		# Check if this is using the new format with type information
+			# Get type and value information from the template
 		if template[key] is Dictionary and template[key].has("type") and template[key].has("value"):
 			value = template[key].value
 			type_id = template[key].type
@@ -166,17 +166,8 @@ func populate_from_template(template: Dictionary) -> void:
 			else:
 				value = str(value)
 		else:
-			# Legacy format
-			value = str(template[key])
-
-			# Try to guess the type
-			if template[key] is float or template[key] is int:
-				type_id = template_manager.TYPE_NUMBER
-			elif template[key] is bool:
-				type_id = template_manager.TYPE_BOOLEAN
-				value = value.to_lower()
-			elif template[key] is Array:
-				type_id = template_manager.TYPE_ARRAY
-				value = JSON.stringify(template[key])
+			# If somehow we get here with incorrect format, use defaults
+			value = ""
+			type_id = template_manager.TYPE_STRING
 
 		add_metadata_field(key, value, type_id)

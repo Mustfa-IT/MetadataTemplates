@@ -103,7 +103,8 @@ func load_parent_metadata() -> void:
 			else:
 				value = str(value)
 		else:
-			value = str(value)
+			# Handle invalid format
+			value = "(invalid format)"
 
 		# Create a panel with read-only metadata
 		add_inherited_metadata_field(key, str(value), type_id)

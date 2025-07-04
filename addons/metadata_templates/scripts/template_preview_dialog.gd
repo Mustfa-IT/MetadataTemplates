@@ -186,10 +186,10 @@ func _display_node_metadata(node: Node) -> void:
 	# Add each metadata item
 	for key in meta_list:
 		var value = node.get_meta(key)
-		var type_name = "Unknown"
+		var type_name = "String" # Default
 		var type_id = 0 # Default to string
 
-		# Determine the type
+		# Determine the type based on value
 		if value is String:
 			type_name = "String"
 			type_id = 0
