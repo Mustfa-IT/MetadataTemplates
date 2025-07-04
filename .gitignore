@@ -1,3 +1,53 @@
 # Godot 4+ specific ignores
 .godot/
+.import/
+export.cfg
+export_presets.cfg
+
+# Godot-specific ignores
+data_*/
+mono_crash.*.json
+
+# Platform-specific build files
 /android/
+/ios/
+/web/
+*.apk
+*.aab
+*.x86_64
+*.so
+*.dll
+*.dylib
+
+# Plugin specific ignores
+# Uncomment these if you want to exclude user-specific templates
+# addons/metadata_templates/templates/user_*.json
+# addons/metadata_templates/templates/local_*.json
+
+# Metadata backend configuration files (may contain sensitive data like API keys)
+addons/metadata_templates/config/*.json
+addons/metadata_templates/config/*.cfg
+addons/metadata_templates/config/*.ini
+!addons/metadata_templates/config/*.example.*
+
+# Exported templates (backup files)
+metadata_templates_*.json
+*.json.bak
+*.backup
+
+# Logs
+*.log
+logs/
+
+# Visual Studio Code ignores
+.vscode/
+*.code-workspace
+
+# General ignores for various operating systems
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
