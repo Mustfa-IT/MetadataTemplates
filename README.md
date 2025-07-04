@@ -1,4 +1,4 @@
-![image](https://github.com/user-attachments/assets/4de7f8b9-a8a9-4b58-bca4-1a8134d66315)
+![image](editor.png)
 
 # Metadata Templates Plugin Documentation
 
