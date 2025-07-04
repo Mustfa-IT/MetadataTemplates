@@ -173,6 +173,15 @@ Templates are stored in a JSON file at `res://addons/metadata_templates/template
 - Preview inherited properties
 - Import/export templates for sharing between projects
 
+## Developer Documentation
+
+If you're interested in extending or contributing to the Metadata Templates plugin, refer to these developer resources:
+
+- [Developer Guide](addons/metadata_templates/docs/developer_guide.md) - Architecture overview, extension points, and contribution workflow
+- [API Reference](addons/metadata_templates/docs/api_reference.md) - Detailed documentation for all classes, methods, and properties
+
+These guides provide comprehensive information for developers who want to customize the plugin, add new features, or understand the internal workings.
+
 ## Examples
 
 ### RPG Item System
