@@ -19,7 +19,7 @@ const MERGE_REPLACE_ALL = 0
 const MERGE_KEEP_EXISTING = 1
 const MERGE_REPLACE_NODE_TYPES = 2
 
-var templates = {}
+var templates = TemplateDataStructure.new()
 var template_file_path = TEMPLATES_DIR + TEMPLATES_FILE
 var last_modified_time = 0
 var file_check_timer: Timer = null
@@ -44,6 +44,8 @@ func initialize() -> void:
 			dir.make_dir("importers")
 		if not dir.dir_exists("exporters"):
 			dir.make_dir("exporters")
+		if not dir.dir_exists("data"):
+			dir.make_dir("data")
 
 	# Register importers and exporters
 	_register_importers_and_exporters()
@@ -52,7 +54,7 @@ func initialize() -> void:
 	load_templates()
 
 	# Clean up any empty node types
-	clean_empty_node_types()
+	templates.clean_empty_node_types()
 
 	# Setup file watching
 	setup_file_watcher()
@@ -127,10 +129,8 @@ func reload_templates_from_disk() -> void:
 		if not imported_templates.is_empty():
 			print("Successfully loaded templates from disk")
 			templates = imported_templates
-			# Migrate if needed
-			migrate_templates_if_needed()
-			# Clean up empty types
-			clean_empty_node_types()
+				# Clean up empty types
+			templates.clean_empty_node_types()
 			# Emit signal for listeners to update
 			emit_signal("templates_reloaded")
 		else:
@@ -150,65 +150,18 @@ func load_templates() -> void:
 		var imported_templates = importer.import_file(template_file_path)
 		if not imported_templates.is_empty():
 			templates = imported_templates
-			# Migrate old format templates to new format if needed
-			migrate_templates_if_needed()
 		else:
 			# Initialize with empty templates if file doesn't exist or is empty
-			templates = {}
+			templates = TemplateDataStructure.new()
 			save_templates()
 	else:
 		printerr("No suitable importer found for file extension: " + file_extension)
-		templates = {}
-		save_templates()
-
-func migrate_templates_if_needed() -> void:
-	# Check if templates need to be migrated to the new format with type information
-	var needs_migration = false
-
-	for node_type in templates.keys():
-		for template_name in templates[node_type].keys():
-			var template = templates[node_type][template_name]
-			for key in template.keys():
-				if not template[key] is Dictionary or not template[key].has("type"):
-					needs_migration = true
-					break
-			if needs_migration:
-				break
-		if needs_migration:
-			break
-
-	# If needed, migrate the templates to include type information
-	if needs_migration:
-		print("Migrating templates to include type information")
-		var migrated_templates = {}
-
-		for node_type in templates.keys():
-			migrated_templates[node_type] = {}
-			for template_name in templates[node_type].keys():
-				migrated_templates[node_type][template_name] = {}
-				var template = templates[node_type][template_name]
-				for key in template.keys():
-					var value = template[key]
-					var type = TYPE_STRING
-
-					if typeof(value) == TYPE_FLOAT or typeof(value) == TYPE_INT:
-						type = TYPE_NUMBER
-					elif typeof(value) == TYPE_BOOL:
-						type = TYPE_BOOLEAN
-					elif typeof(value) == TYPE_ARRAY:
-						type = TYPE_ARRAY
-
-					migrated_templates[node_type][template_name][key] = {
-						"value": value,
-						"type": type
-					}
-
-		templates = migrated_templates
+		templates = TemplateDataStructure.new()
 		save_templates()
 
 func save_templates() -> void:
 	# Clean empty node types before saving
-	clean_empty_node_types()
+	templates.clean_empty_node_types()
 
 	# Temporarily disable file watching to prevent recursive reload
 	file_watch_enabled = false
@@ -230,49 +183,24 @@ func save_templates() -> void:
 	# Re-enable file watching
 	file_watch_enabled = true
 
-# Remove any node types that have no templates
-func clean_empty_node_types() -> void:
-	var empty_types = []
-
-	# Find all empty node types
-	for node_type in templates.keys():
-		if templates[node_type].is_empty():
-			empty_types.append(node_type)
-
-	# Remove the empty node types
-	for node_type in empty_types:
-		templates.erase(node_type)
-
 func create_template(template_name: String, node_type: String, metadata: Dictionary) -> void:
-	if not templates.has(node_type):
-		templates[node_type] = {}
-
-	templates[node_type][template_name] = metadata
+	templates.set_template(node_type, template_name, metadata)
 	save_templates()
 
 func delete_template(node_type: String, template_name: String) -> void:
-	if templates.has(node_type) and templates[node_type].has(template_name):
-		templates[node_type].erase(template_name)
-
-		# If this was the last template for this node type, remove the node type
-		if templates[node_type].is_empty():
-			templates.erase(node_type)
-
+	if templates.delete_template(node_type, template_name):
 		save_templates()
 
 func get_templates_for_node_type(node_type: String) -> Dictionary:
-	if templates.has(node_type):
-		return templates[node_type]
-	return {}
+	return templates.get_templates_for_node_type(node_type)
 
 func get_all_node_types() -> Array:
-	return templates.keys()
+	return templates.get_node_types()
 
 func apply_template_to_node(node: Node, node_type: String, template_name: String, clear_existing: bool = true) -> void:
-	if not templates.has(node_type) or not templates[node_type].has(template_name):
+	var template_data = templates.get_template(node_type, template_name)
+	if template_data.is_empty():
 		return
-
-	var template = templates[node_type][template_name]
 
 	# Clear existing metadata if requested
 	if clear_existing:
@@ -282,8 +210,8 @@ func apply_template_to_node(node: Node, node_type: String, template_name: String
 
 	# Check if this template extends another template
 	var extends_template = null
-	if template.has(EXTENDS_KEY) and template[EXTENDS_KEY] is Dictionary and template[EXTENDS_KEY].has("value"):
-		extends_template = template[EXTENDS_KEY].value
+	if template_data.has(EXTENDS_KEY) and template_data[EXTENDS_KEY] is Dictionary and template_data[EXTENDS_KEY].has("value"):
+		extends_template = template_data[EXTENDS_KEY].value
 
 	# Apply parent template first if it exists
 	if extends_template != null and extends_template is String and extends_template != "":
@@ -291,17 +219,17 @@ func apply_template_to_node(node: Node, node_type: String, template_name: String
 		apply_template_to_node(node, node_type, extends_template, false)
 
 	# Apply the template metadata (will override parent values if they exist)
-	for key in template:
+	for key in template_data:
 		# Skip the extends key, it's not actual metadata
 		if key == EXTENDS_KEY:
 			continue
 
-		if template[key] is Dictionary and template[key].has("value"):
+		if template_data[key] is Dictionary and template_data[key].has("value"):
 			# New format with type information
-			node.set_meta(key, template[key].value)
+			node.set_meta(key, template_data[key].value)
 		else:
 			# Legacy format fallback
-			node.set_meta(key, template[key])
+			node.set_meta(key, template_data[key])
 
 	# Add template tracking metadata
 	node.set_meta("_template_name", template_name)
@@ -310,14 +238,13 @@ func apply_template_to_node(node: Node, node_type: String, template_name: String
 # Helper function to get all template names for a node type, including inherited ones
 func get_available_parent_templates(node_type: String, current_template: String = "") -> Array:
 	var result = []
+	var node_templates = templates.get_templates_for_node_type(node_type)
 
-	if templates.has(node_type):
-		# Add all templates for this node type except the current one
-		for template_name in templates[node_type].keys():
-			if template_name != current_template:
-				# Check for circular inheritance
-				if not would_cause_circular_inheritance(node_type, current_template, template_name):
-					result.append(template_name)
+	for template_name in node_templates.keys():
+		if template_name != current_template:
+			# Check for circular inheritance
+			if not would_cause_circular_inheritance(node_type, current_template, template_name):
+				result.append(template_name)
 
 	return result
 
@@ -330,6 +257,7 @@ func would_cause_circular_inheritance(node_type: String, child_template: String,
 	var current = parent_template
 	var max_depth = 20 # Safety limit for recursion
 	var depth = 0
+	var node_templates = templates.get_templates_for_node_type(node_type)
 
 	while current != "" and depth < max_depth:
 		# If we found our starting template in the inheritance chain, we have a cycle
@@ -337,9 +265,9 @@ func would_cause_circular_inheritance(node_type: String, child_template: String,
 			return true
 
 		# Get the parent of current template
-		var current_template = templates[node_type].get(current, {})
-		if current_template.has(EXTENDS_KEY) and current_template[EXTENDS_KEY] is Dictionary and current_template[EXTENDS_KEY].has("value"):
-			current = current_template[EXTENDS_KEY].value
+		var current_template_data = node_templates.get(current, {})
+		if current_template_data.has(EXTENDS_KEY) and current_template_data[EXTENDS_KEY] is Dictionary and current_template_data[EXTENDS_KEY].has("value"):
+			current = current_template_data[EXTENDS_KEY].value
 		else:
 			break
 
@@ -349,39 +277,37 @@ func would_cause_circular_inheritance(node_type: String, child_template: String,
 
 # Get a template with all inherited properties merged in
 func get_merged_template(node_type: String, template_name: String) -> Dictionary:
-	if not templates.has(node_type) or not templates[node_type].has(template_name):
+	var template_data = templates.get_template(node_type, template_name)
+	if template_data.is_empty():
 		return {}
 
-	var template = templates[node_type][template_name]
 	var result = {}
 
 	# Check if this template extends another template
 	var extends_template = null
-	if template.has(EXTENDS_KEY) and template[EXTENDS_KEY] is Dictionary and template[EXTENDS_KEY].has("value"):
-		extends_template = template[EXTENDS_KEY].value
+	if template_data.has(EXTENDS_KEY) and template_data[EXTENDS_KEY] is Dictionary and template_data[EXTENDS_KEY].has("value"):
+		extends_template = template_data[EXTENDS_KEY].value
 
 	# Start with parent template properties if it exists
 	if extends_template != null and extends_template is String and extends_template != "":
 		result = get_merged_template(node_type, extends_template)
 
 	# Override with this template's properties
-	for key in template:
+	for key in template_data:
 		if key != EXTENDS_KEY: # Skip the extends key
-			result[key] = template[key]
+			result[key] = template_data[key]
 
 	return result
 
 # Create a node type entry if it doesn't exist, but don't save it until
 # a template is actually created for it
 func ensure_node_type_exists(node_type: String) -> void:
-	if not templates.has(node_type):
-		templates[node_type] = {}
-	# Don't save yet - we'll only save when a template is created
+	templates.set_template(node_type, "", {})
 
 # Export templates to a file using the appropriate exporter
 func export_templates_to_file(file_path: String, options: Dictionary = {}) -> bool:
 	# Clean empty node types before exporting
-	clean_empty_node_types()
+	templates.clean_empty_node_types()
 
 	# Determine the exporter based on file extension
 	var file_extension = file_path.get_extension().to_lower()

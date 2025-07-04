@@ -12,7 +12,7 @@ func validate_file(file_path: String) -> Dictionary:
 	var result = {
 		"valid": false,
 		"error": "",
-		"data": null
+		"data": TemplateDataStructure.new()
 	}
 
 	# Check if the file exists
@@ -39,34 +39,38 @@ func validate_file(file_path: String) -> Dictionary:
 		return result
 
 	# Get the data
-	var data = json.get_data()
+	var parsed_data = json.get_data()
 
 	# Validate that it's a dictionary (expected format for templates)
-	if not data is Dictionary:
+	if not parsed_data is Dictionary:
 		result.error = "File does not contain valid template data (expected a dictionary)."
 		return result
 
 	# Validate the structure of the templates
-	for node_type in data.keys():
-		if not data[node_type] is Dictionary:
+	for node_type in parsed_data.keys():
+		if not parsed_data[node_type] is Dictionary:
 			result.error = "Invalid template structure: Node type '" + node_type + "' is not a dictionary."
 			return result
 
-		for template_name in data[node_type].keys():
-			if not data[node_type][template_name] is Dictionary:
+		for template_name in parsed_data[node_type].keys():
+			if not parsed_data[node_type][template_name] is Dictionary:
 				result.error = "Invalid template structure: Template '" + template_name + "' is not a dictionary."
 				return result
 
 	# Basic validation passed
 	result.valid = true
-	result.data = data
+
+	# Create and populate the template data structure
+	var data_structure = TemplateDataStructure.new()
+	data_structure.data = parsed_data.duplicate(true)
+	result.data = data_structure
 
 	return result
 
-func import_file(file_path: String) -> Dictionary:
+func import_file(file_path: String) -> TemplateDataStructure:
 	var validation = validate_file(file_path)
 	if validation.valid:
 		return validation.data
 	else:
 		printerr("Failed to import templates: " + validation.error)
-		return {}
+		return TemplateDataStructure.new()

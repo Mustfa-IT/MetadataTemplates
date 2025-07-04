@@ -22,53 +22,30 @@ func validate_file(file_path: String) -> Dictionary:
 	# {
 	#   "valid": bool,
 	#   "error": String,
-	#   "data": Dictionary (parsed template data)
+	#   "data": TemplateDataStructure (parsed template data)
 	# }
 	return {
 		"valid": false,
 		"error": "Not implemented in base class",
-		"data": {}
+		"data": TemplateDataStructure.new()
 	}
 
-func import_file(file_path: String) -> Dictionary:
+func import_file(file_path: String) -> TemplateDataStructure:
 	# Should return the template data structure
-	return {}
+	return TemplateDataStructure.new()
 
 # Apply the imported templates based on merge strategy
-func apply_templates(imported_templates: Dictionary, existing_templates: Dictionary, merge_strategy: int) -> Dictionary:
-	var result = existing_templates.duplicate(true)
-
-	match merge_strategy:
-		MERGE_REPLACE_ALL:
-			# Replace all templates
-			result = imported_templates
-
-		MERGE_KEEP_EXISTING:
-			# Only add new templates, keep existing ones
-			for node_type in imported_templates:
-				if not result.has(node_type):
-					result[node_type] = {}
-
-				for template_name in imported_templates[node_type]:
-					if not result[node_type].has(template_name):
-						result[node_type][template_name] = imported_templates[node_type][template_name]
-
-		MERGE_REPLACE_NODE_TYPES:
-			# Replace node types found in the import, but keep others
-			for node_type in imported_templates:
-				result[node_type] = imported_templates[node_type]
-
+func apply_templates(imported_templates: TemplateDataStructure, existing_templates: TemplateDataStructure, merge_strategy: int) -> TemplateDataStructure:
+	var result = existing_templates.duplicate()
+	result.merge_with(imported_templates, merge_strategy)
 	return result
 
 # Count the number of templates in the import
-func count_templates(templates: Dictionary) -> int:
-	var count = 0
-	for node_type in templates:
-		count += templates[node_type].size()
-	return count
+func count_templates(templates: TemplateDataStructure) -> int:
+	return templates.count_templates()
 
 # Preview the result of applying the merge strategy
-func preview_merge(imported_templates: Dictionary, existing_templates: Dictionary, merge_strategy: int) -> Dictionary:
+func preview_merge(imported_templates: TemplateDataStructure, existing_templates: TemplateDataStructure, merge_strategy: int) -> Dictionary:
 	var preview = {
 		"added": [], # New templates that will be added
 		"modified": [], # Existing templates that will be modified
@@ -79,9 +56,9 @@ func preview_merge(imported_templates: Dictionary, existing_templates: Dictionar
 	match merge_strategy:
 		MERGE_REPLACE_ALL:
 			# All existing templates removed, all imported templates added
-			for node_type in existing_templates:
-				for template_name in existing_templates[node_type]:
-					if imported_templates.has(node_type) and imported_templates[node_type].has(template_name):
+			for node_type in existing_templates.data:
+				for template_name in existing_templates.data[node_type]:
+					if imported_templates.data.has(node_type) and imported_templates.data[node_type].has(template_name):
 						preview.modified.append({
 							"node_type": node_type,
 							"template_name": template_name
@@ -92,9 +69,9 @@ func preview_merge(imported_templates: Dictionary, existing_templates: Dictionar
 							"template_name": template_name
 						})
 
-			for node_type in imported_templates:
-				for template_name in imported_templates[node_type]:
-					if not (existing_templates.has(node_type) and existing_templates[node_type].has(template_name)):
+			for node_type in imported_templates.data:
+				for template_name in imported_templates.data[node_type]:
+					if not (existing_templates.data.has(node_type) and existing_templates.data[node_type].has(template_name)):
 						preview.added.append({
 							"node_type": node_type,
 							"template_name": template_name
@@ -102,9 +79,9 @@ func preview_merge(imported_templates: Dictionary, existing_templates: Dictionar
 
 		MERGE_KEEP_EXISTING:
 			# Only add new templates, keep existing ones
-			for node_type in imported_templates:
-				for template_name in imported_templates[node_type]:
-					if existing_templates.has(node_type) and existing_templates[node_type].has(template_name):
+			for node_type in imported_templates.data:
+				for template_name in imported_templates.data[node_type]:
+					if existing_templates.data.has(node_type) and existing_templates.data[node_type].has(template_name):
 						preview.unchanged.append({
 							"node_type": node_type,
 							"template_name": template_name
@@ -116,9 +93,9 @@ func preview_merge(imported_templates: Dictionary, existing_templates: Dictionar
 						})
 
 			# All existing templates are kept
-			for node_type in existing_templates:
-				for template_name in existing_templates[node_type]:
-					if not (imported_templates.has(node_type) and imported_templates[node_type].has(template_name)):
+			for node_type in existing_templates.data:
+				for template_name in existing_templates.data[node_type]:
+					if not (imported_templates.data.has(node_type) and imported_templates.data[node_type].has(template_name)):
 						preview.unchanged.append({
 							"node_type": node_type,
 							"template_name": template_name
@@ -126,9 +103,9 @@ func preview_merge(imported_templates: Dictionary, existing_templates: Dictionar
 
 		MERGE_REPLACE_NODE_TYPES:
 			# Replace node types found in the import
-			for node_type in imported_templates:
-				for template_name in imported_templates[node_type]:
-					if existing_templates.has(node_type) and existing_templates[node_type].has(template_name):
+			for node_type in imported_templates.data:
+				for template_name in imported_templates.data[node_type]:
+					if existing_templates.data.has(node_type) and existing_templates.data[node_type].has(template_name):
 						preview.modified.append({
 							"node_type": node_type,
 							"template_name": template_name
@@ -140,18 +117,18 @@ func preview_merge(imported_templates: Dictionary, existing_templates: Dictionar
 						})
 
 				# Existing templates of this node type that aren't in the import will be removed
-				if existing_templates.has(node_type):
-					for template_name in existing_templates[node_type]:
-						if not imported_templates[node_type].has(template_name):
+				if existing_templates.data.has(node_type):
+					for template_name in existing_templates.data[node_type]:
+						if not imported_templates.data[node_type].has(template_name):
 							preview.removed.append({
 								"node_type": node_type,
 								"template_name": template_name
 							})
 
 			# Existing node types not in the import remain unchanged
-			for node_type in existing_templates:
-				if not imported_templates.has(node_type):
-					for template_name in existing_templates[node_type]:
+			for node_type in existing_templates.data:
+				if not imported_templates.data.has(node_type):
+					for template_name in existing_templates.data[node_type]:
 						preview.unchanged.append({
 							"node_type": node_type,
 							"template_name": template_name

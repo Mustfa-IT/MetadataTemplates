@@ -23,7 +23,7 @@ func get_format_options() -> Array:
 	# }
 	return []
 
-func export_templates(templates: Dictionary, file_path: String, options: Dictionary = {}) -> bool:
+func export_templates(templates: TemplateDataStructure, file_path: String, options: Dictionary = {}) -> bool:
 	# Export the templates to the specified file with the given options
 	# Return true if successful, false otherwise
 	return false

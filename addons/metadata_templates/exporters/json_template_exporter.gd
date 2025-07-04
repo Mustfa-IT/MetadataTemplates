@@ -29,7 +29,7 @@ func get_format_options() -> Array:
 		}
 	]
 
-func export_templates(templates: Dictionary, file_path: String, options: Dictionary = {}) -> bool:
+func export_templates(templates: TemplateDataStructure, file_path: String, options: Dictionary = {}) -> bool:
 	# Apply default options if not provided
 	var pretty_print = options.get("pretty_print", true)
 	var indent_size = options.get("indent_size", 2)
@@ -49,9 +49,9 @@ func export_templates(templates: Dictionary, file_path: String, options: Diction
 	# Convert templates to JSON
 	var json_string = ""
 	if pretty_print:
-		json_string = JSON.stringify(templates, indent)
+		json_string = JSON.stringify(templates.data, indent)
 	else:
-		json_string = JSON.stringify(templates)
+		json_string = JSON.stringify(templates.data)
 
 	# Write to file
 	file.store_string(json_string)
