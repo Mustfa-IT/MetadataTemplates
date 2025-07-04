@@ -10,6 +10,9 @@ const MERGE_REPLACE_NODE_TYPES = 2
 # Signal emitted when validation is complete
 signal validation_completed(result)
 
+# Associated serializer (can be null)
+var _serializer: SerializationService = null
+
 # Override these methods in child classes
 func get_importer_name() -> String:
 	return "Base Importer"
@@ -33,6 +36,14 @@ func validate_file(file_path: String) -> Dictionary:
 func import_file(file_path: String) -> TemplateDataStructure:
 	# Should return the template data structure
 	return TemplateDataStructure.new()
+
+# Set serializer to use for this importer
+func set_serializer(serializer: SerializationService) -> void:
+	_serializer = serializer
+
+# Get the currently assigned serializer
+func get_serializer() -> SerializationService:
+	return _serializer
 
 # Apply the imported templates based on merge strategy
 func apply_templates(imported_templates: TemplateDataStructure, existing_templates: TemplateDataStructure, merge_strategy: int) -> TemplateDataStructure:

@@ -5,14 +5,22 @@ This document provides technical information for developers who want to extend, 
 ## Table of Contents
 1. [Architecture Overview](#architecture-overview)
 2. [Core Components](#core-components)
-3. [Extension Points](#extension-points)
+3. [Services Architecture](#services-architecture)
+   - [Service Registry](#service-registry)
+   - [Storage Backends](#storage-backends)
+   - [Serialization Services](#serialization-services)
+   - [Validation Services](#validation-services)
+4. [Extension Points](#extension-points)
    - [Adding New Importers](#adding-new-importers)
    - [Adding New Exporters](#adding-new-exporters)
    - [Adding New Metadata Types](#adding-new-metadata-types)
-4. [Development Workflow](#development-workflow)
-5. [Coding Guidelines](#coding-guidelines)
-6. [Testing](#testing)
-7. [Contributing](#contributing)
+   - [Creating Custom Backends](#creating-custom-backends)
+   - [Creating Custom Serializers](#creating-custom-serializers)
+   - [Creating Custom Validators](#creating-custom-validators)
+5. [Development Workflow](#development-workflow)
+6. [Coding Guidelines](#coding-guidelines)
+7. [Testing](#testing)
+8. [Contributing](#contributing)
 
 ## Architecture Overview
 
@@ -73,6 +81,24 @@ A singleton that provides a clean API for working with metadata on nodes:
 The plugin uses a modular system for importing and exporting templates in different formats:
 - Base classes: `TemplateImporter` and `TemplateExporter`
 - Default implementations: `JSONTemplateImporter` and `JSONTemplateExporter`
+
+## Services Architecture
+
+### Service Registry
+
+The Service Registry is responsible for managing the lifecycle of services within the plugin. It ensures that services are properly initialized, registered, and accessible throughout the plugin.
+
+### Storage Backends
+
+Storage Backends handle the persistence of template data. They provide a unified interface for reading and writing templates to various storage mediums, such as files, databases, or cloud storage.
+
+### Serialization Services
+
+Serialization Services are responsible for converting template data structures to and from different formats. They ensure that templates can be easily imported, exported, and transferred between different systems.
+
+### Validation Services
+
+Validation Services ensure the integrity and correctness of template data. They provide mechanisms for validating templates against predefined rules and constraints, ensuring that templates are consistent and error-free.
 
 ## Extension Points
 
@@ -209,6 +235,107 @@ const TYPE_COLOR = 4  # Example for a color type
 
 4. Update `InheritanceViewer` to display the new type
 5. Update `TemplatePreviewDialog` to edit the new type
+
+### Creating Custom Backends
+
+To create a custom storage backend:
+
+1. Implement a new class that extends `StorageBackend`:
+
+```gdscript
+@tool
+class_name MyCustomBackend
+extends StorageBackend
+
+func get_backend_name() -> String:
+    return "My Custom Backend"
+
+func read_templates() -> TemplateDataStructure:
+    # Your read logic here
+    return TemplateDataStructure.new()
+
+func write_templates(templates: TemplateDataStructure) -> bool:
+    # Your write logic here
+    return true
+```
+
+2. Register your backend in `ServiceRegistry`:
+
+```gdscript
+func _register_services() -> void:
+    # Existing code...
+
+    # Register your new backend
+    var my_backend = MyCustomBackend.new()
+    storage_backends.append(my_backend)
+```
+
+### Creating Custom Serializers
+
+To create a custom serializer:
+
+1. Implement a new class that extends `Serializer`:
+
+```gdscript
+@tool
+class_name MyCustomSerializer
+extends Serializer
+
+func get_serializer_name() -> String:
+    return "My Custom Serializer"
+
+func serialize(templates: TemplateDataStructure) -> String:
+    # Your serialization logic here
+    return ""
+
+func deserialize(data: String) -> TemplateDataStructure:
+    # Your deserialization logic here
+    return TemplateDataStructure.new()
+```
+
+2. Register your serializer in `ServiceRegistry`:
+
+```gdscript
+func _register_services() -> void:
+    # Existing code...
+
+    # Register your new serializer
+    var my_serializer = MyCustomSerializer.new()
+    serializers.append(my_serializer)
+```
+
+### Creating Custom Validators
+
+To create a custom validator:
+
+1. Implement a new class that extends `Validator`:
+
+```gdscript
+@tool
+class_name MyCustomValidator
+extends Validator
+
+func get_validator_name() -> String:
+    return "My Custom Validator"
+
+func validate(templates: TemplateDataStructure) -> Dictionary:
+    # Your validation logic here
+    return {
+        "valid": true,
+        "errors": []
+    }
+```
+
+2. Register your validator in `ServiceRegistry`:
+
+```gdscript
+func _register_services() -> void:
+    # Existing code...
+
+    # Register your new validator
+    var my_validator = MyCustomValidator.new()
+    validators.append(my_validator)
+```
 
 ## Development Workflow
 

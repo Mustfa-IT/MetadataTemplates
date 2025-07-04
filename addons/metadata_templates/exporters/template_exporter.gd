@@ -2,6 +2,9 @@
 class_name TemplateExporter
 extends RefCounted
 
+# Associated serializer (can be null)
+var _serializer: SerializationService = null
+
 # Override these methods in child classes
 func get_exporter_name() -> String:
 	return "Base Exporter"
@@ -27,6 +30,14 @@ func export_templates(templates: TemplateDataStructure, file_path: String, optio
 	# Export the templates to the specified file with the given options
 	# Return true if successful, false otherwise
 	return false
+
+# Set serializer to use for this exporter
+func set_serializer(serializer: SerializationService) -> void:
+	_serializer = serializer
+
+# Get the currently assigned serializer
+func get_serializer() -> SerializationService:
+	return _serializer
 
 func get_file_filters() -> PackedStringArray:
 	# Return file filters for the file dialog
