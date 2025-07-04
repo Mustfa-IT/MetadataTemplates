@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://blfn8toddw7e0"]
 
-[ext_resource type="Script" uid="uid://cgpac60r7estq" path="res://node_2d.gd" id="1_wtcfe"]
+[ext_resource type="Script" uid="uid://cgpac60r7estq" path="res://addons/metadata_templates/testing/node_2d.gd" id="1_wtcfe"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_y32ns"]
 
