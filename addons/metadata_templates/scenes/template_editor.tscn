@@ -295,25 +295,25 @@ title = "Export Metadata Templates"
 position = Vector2i(350, 150)
 size = Vector2i(700, 400)
 ok_button_text = "Save"
-filters = PackedStringArray("*.json")
 access = 2
+filters = PackedStringArray("*.json", "*.json ; JSON Files")
 
 [node name="ImportDialog" type="FileDialog" parent="."]
-title = "Import Metadata Templates"
+title = "Open a File"
 position = Vector2i(350, 150)
 size = Vector2i(700, 400)
+exclusive = false
 ok_button_text = "Open"
 file_mode = 0
-filters = PackedStringArray("*.json")
 access = 2
-exclusive = false
+filters = PackedStringArray("*.json", "*.json ; JSON Files")
 
 [node name="ImportMergeDialog" type="ConfirmationDialog" parent="."]
 title = "Import Options"
 position = Vector2i(350, 150)
 size = Vector2i(400, 200)
-ok_button_text = "Import"
 exclusive = false
+ok_button_text = "Import"
 
 [node name="VBoxContainer" type="VBoxContainer" parent="ImportMergeDialog"]
 offset_left = 8.0
@@ -329,8 +329,8 @@ horizontal_alignment = 1
 
 [node name="MergeOptionButton" type="OptionButton" parent="ImportMergeDialog/VBoxContainer"]
 layout_mode = 2
-item_count = 3
 selected = 0
+item_count = 3
 popup/item_0/text = "Replace All Templates"
 popup/item_0/id = 0
 popup/item_1/text = "Only Add New Templates (Keep Existing)"

@@ -78,10 +78,12 @@ The plugin allows you to share templates between projects or with other team mem
 
 1. Click the **Import Templates** button in the Templates tab
 2. Select a JSON file containing templates to import
-3. Choose a merge strategy:
+3. A preview dialog shows you exactly what templates will be added, overwritten, or kept
+4. Choose a merge strategy:
    - **Replace All Templates**: Removes all existing templates and uses only the imported ones
    - **Only Add New Templates**: Keeps existing templates and only adds templates that don't already exist
    - **Replace Node Types**: Replaces templates for node types in the imported file, but keeps other node types
+5. The preview dynamically updates to show how each strategy affects your templates
 
 ### Sharing Templates
 

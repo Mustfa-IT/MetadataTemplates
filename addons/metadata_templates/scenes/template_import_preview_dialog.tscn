@@ -1,0 +1,134 @@
+[gd_scene load_steps=3 format=3 uid="uid://cvko4w3hca658"]
+
+[ext_resource type="Script" path="res://addons/metadata_templates/scripts/template_import_preview_dialog.gd" id="1_5kxat"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kdtmn"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+bg_color = Color(0.176471, 0.211765, 0.254902, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.301961, 0.337255, 0.4, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[node name="TemplateImportPreviewDialog" type="Window"]
+title = "Template Import Preview"
+initial_position = 1
+size = Vector2i(900, 600)
+min_size = Vector2i(700, 500)
+script = ExtResource("1_5kxat")
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+
+[node name="HeaderPanel" type="PanelContainer" parent="MainContainer"]
+layout_mode = 2
+theme_type_variation = &"HeaderPanel"
+
+[node name="MarginContainer" type="MarginContainer" parent="MainContainer/HeaderPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Label" type="Label" parent="MainContainer/HeaderPanel/MarginContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Review Templates to Import"
+horizontal_alignment = 1
+
+[node name="HSplitContainer" type="HSplitContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+split_offset = 300
+
+[node name="LeftPanel" type="VBoxContainer" parent="MainContainer/HSplitContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainContainer/HSplitContainer/LeftPanel"]
+layout_mode = 2
+text = "Templates to Import"
+
+[node name="TemplateTree" type="Tree" parent="MainContainer/HSplitContainer/LeftPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+columns = 2
+hide_root = true
+
+[node name="RightPanel" type="VBoxContainer" parent="MainContainer/HSplitContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainContainer/HSplitContainer/RightPanel"]
+layout_mode = 2
+text = "Template Details"
+
+[node name="DetailPanel" type="PanelContainer" parent="MainContainer/HSplitContainer/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_kdtmn")
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainContainer/HSplitContainer/RightPanel/DetailPanel"]
+layout_mode = 2
+
+[node name="TemplateDetails" type="VBoxContainer" parent="MainContainer/HSplitContainer/RightPanel/DetailPanel/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="StatusBar" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="MainContainer/StatusBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Import file:"
+
+[node name="CountLabel" type="Label" parent="MainContainer/StatusBar"]
+layout_mode = 2
+text = "0 templates total: 0 new, 0 overwriting existing"
+horizontal_alignment = 2
+
+[node name="BottomPanel" type="VBoxContainer" parent="MainContainer"]
+layout_mode = 2
+
+[node name="StrategyDescription" type="Label" parent="MainContainer/BottomPanel"]
+layout_mode = 2
+text = "Replace All Templates: All existing templates will be removed and replaced with imported templates."
+autowrap_mode = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MainContainer/BottomPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainContainer/BottomPanel/HBoxContainer"]
+layout_mode = 2
+text = "Import Strategy:"
+
+[node name="MergeOptions" type="OptionButton" parent="MainContainer/BottomPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ButtonContainer" type="HBoxContainer" parent="MainContainer/BottomPanel"]
+layout_mode = 2
+alignment = 2
+
+[node name="ImportButton" type="Button" parent="MainContainer/BottomPanel"]
+layout_mode = 2
+text = "Import"
+
+[node name="CancelButton" type="Button" parent="MainContainer/BottomPanel"]
+layout_mode = 2
+text = "Cancel"

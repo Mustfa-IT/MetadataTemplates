@@ -14,7 +14,7 @@ const TYPE_ARRAY = 3
 # Special metadata keys
 const EXTENDS_KEY = "_extends"
 
-# Import/Export constants
+# Import/Export constants (for backward compatibility)
 const MERGE_REPLACE_ALL = 0
 const MERGE_KEEP_EXISTING = 1
 const MERGE_REPLACE_NODE_TYPES = 2
@@ -25,6 +25,12 @@ var last_modified_time = 0
 var file_check_timer: Timer = null
 var file_watch_enabled = true
 
+# Available importers and exporters
+var importers = {}
+var exporters = {}
+var default_importer = null
+var default_exporter = null
+
 # Signal for when templates are reloaded from external changes
 signal templates_reloaded
 
@@ -34,6 +40,13 @@ func initialize() -> void:
 	if dir:
 		if not dir.dir_exists("templates"):
 			dir.make_dir("templates")
+		if not dir.dir_exists("importers"):
+			dir.make_dir("importers")
+		if not dir.dir_exists("exporters"):
+			dir.make_dir("exporters")
+
+	# Register importers and exporters
+	_register_importers_and_exporters()
 
 	# Load existing templates
 	load_templates()
@@ -46,6 +59,17 @@ func initialize() -> void:
 
 	# Store initial modification time
 	update_last_modified_time()
+
+func _register_importers_and_exporters() -> void:
+	# Register importers
+	var json_importer = JSONTemplateImporter.new()
+	importers["json"] = json_importer
+	default_importer = json_importer
+
+	# Register exporters
+	var json_exporter = JSONTemplateExporter.new()
+	exporters["json"] = json_exporter
+	default_exporter = json_exporter
 
 func setup_file_watcher() -> void:
 	# Create a timer for checking file changes
@@ -94,15 +118,15 @@ func reload_templates_from_disk() -> void:
 	# Temporarily disable file watching to prevent recursive reloads
 	file_watch_enabled = false
 
-	var file = FileAccess.open(template_file_path, FileAccess.READ)
-	if file:
-		var json_string = file.get_as_text()
-		var json_parse = JSON.new()
-		var parse_result = json_parse.parse(json_string)
+	# Use the appropriate importer based on file extension
+	var file_extension = template_file_path.get_extension().to_lower()
+	var importer = importers.get(file_extension, default_importer)
 
-		if parse_result == OK:
+	if importer:
+		var imported_templates = importer.import_file(template_file_path)
+		if not imported_templates.is_empty():
 			print("Successfully loaded templates from disk")
-			templates = json_parse.get_data()
+			templates = imported_templates
 			# Migrate if needed
 			migrate_templates_if_needed()
 			# Clean up empty types
@@ -110,32 +134,30 @@ func reload_templates_from_disk() -> void:
 			# Emit signal for listeners to update
 			emit_signal("templates_reloaded")
 		else:
-			print("Error parsing templates file: ", json_parse.get_error_message())
-			print("Error at line: ", json_parse.get_error_line())
-			# Keep using existing templates without overwriting
-
-		file.close()
+			print("Failed to load templates or file was empty")
+	else:
+		printerr("No suitable importer found for file extension: " + file_extension)
 
 	# Re-enable file watching
 	file_watch_enabled = true
 
 func load_templates() -> void:
-	var file = FileAccess.open(template_file_path, FileAccess.READ)
-	if file:
-		var json_string = file.get_as_text()
-		var json_parse = JSON.new()
-		var parse_result = json_parse.parse(json_string)
-		if parse_result == OK:
-			templates = json_parse.get_data()
+	# Use the appropriate importer based on file extension
+	var file_extension = template_file_path.get_extension().to_lower()
+	var importer = importers.get(file_extension, default_importer)
+
+	if importer:
+		var imported_templates = importer.import_file(template_file_path)
+		if not imported_templates.is_empty():
+			templates = imported_templates
 			# Migrate old format templates to new format if needed
 			migrate_templates_if_needed()
 		else:
-			print("Error parsing templates file: ", json_parse.get_error_message())
-			print("Error at line: ", json_parse.get_error_line())
+			# Initialize with empty templates if file doesn't exist or is empty
 			templates = {}
-		file.close()
+			save_templates()
 	else:
-		# Initialize with empty templates if file doesn't exist
+		printerr("No suitable importer found for file extension: " + file_extension)
 		templates = {}
 		save_templates()
 
@@ -191,14 +213,19 @@ func save_templates() -> void:
 	# Temporarily disable file watching to prevent recursive reload
 	file_watch_enabled = false
 
-	var file = FileAccess.open(template_file_path, FileAccess.WRITE)
-	if file:
-		var json_string = JSON.stringify(templates, "  ")
-		file.store_string(json_string)
-		file.close()
+	# Use the appropriate exporter based on file extension
+	var file_extension = template_file_path.get_extension().to_lower()
+	var exporter = exporters.get(file_extension, default_exporter)
 
-		# Update the last modified time after saving
-		update_last_modified_time()
+	if exporter:
+		var success = exporter.export_templates(templates, template_file_path)
+		if success:
+			# Update the last modified time after saving
+			update_last_modified_time()
+		else:
+			printerr("Failed to save templates to: " + template_file_path)
+	else:
+		printerr("No suitable exporter found for file extension: " + file_extension)
 
 	# Re-enable file watching
 	file_watch_enabled = true
@@ -351,71 +378,37 @@ func ensure_node_type_exists(node_type: String) -> void:
 		templates[node_type] = {}
 	# Don't save yet - we'll only save when a template is created
 
-# Export templates to a JSON file
-func export_templates_to_file(file_path: String) -> bool:
+# Export templates to a file using the appropriate exporter
+func export_templates_to_file(file_path: String, options: Dictionary = {}) -> bool:
 	# Clean empty node types before exporting
 	clean_empty_node_types()
 
-	# Create a copy of templates to export
-	var export_data = templates.duplicate(true)
+	# Determine the exporter based on file extension
+	var file_extension = file_path.get_extension().to_lower()
+	var exporter = exporters.get(file_extension, default_exporter)
 
-	# Try to write the file
-	var file = FileAccess.open(file_path, FileAccess.WRITE)
-	if file:
-		var json_string = JSON.stringify(export_data, "  ")
-		file.store_string(json_string)
-		file.close()
-		return true
+	if exporter:
+		return exporter.export_templates(templates, file_path, options)
 	else:
-		print("Failed to open file for writing: " + file_path)
+		printerr("No suitable exporter found for file extension: " + file_extension)
 		return false
 
-# Validate that a file contains valid template data
+# Validate that a file contains valid template data using the appropriate importer
 func validate_templates_file(file_path: String) -> Dictionary:
-	var result = {
-		"valid": false,
-		"error": "",
-		"data": null
-	}
+	# Determine the importer based on file extension
+	var file_extension = file_path.get_extension().to_lower()
+	var importer = importers.get(file_extension, default_importer)
 
-	# Check if the file exists
-	if not FileAccess.file_exists(file_path):
-		result.error = "File does not exist."
-		return result
+	if importer:
+		return importer.validate_file(file_path)
+	else:
+		return {
+			"valid": false,
+			"error": "No suitable importer found for file extension: " + file_extension,
+			"data": null
+		}
 
-	# Try to open and read the file
-	var file = FileAccess.open(file_path, FileAccess.READ)
-	if not file:
-		result.error = "Could not open file for reading."
-		return result
-
-	# Read the file content
-	var json_string = file.get_as_text()
-	file.close()
-
-	# Parse the JSON
-	var json = JSON.new()
-	var parse_result = json.parse(json_string)
-
-	if parse_result != OK:
-		result.error = "Invalid JSON format: " + json.get_error_message() + " at line " + str(json.get_error_line())
-		return result
-
-	# Get the data
-	var data = json.get_data()
-
-	# Validate that it's a dictionary (expected format for templates)
-	if not data is Dictionary:
-		result.error = "File does not contain valid template data (expected a dictionary)."
-		return result
-
-	# Basic validation passed
-	result.valid = true
-	result.data = data
-
-	return result
-
-# Import templates from a JSON file
+# Import templates from a file using the appropriate importer
 func import_templates_from_file(file_path: String, merge_strategy: int = MERGE_REPLACE_ALL) -> Dictionary:
 	var result = {
 		"success": false,
@@ -423,8 +416,15 @@ func import_templates_from_file(file_path: String, merge_strategy: int = MERGE_R
 		"imported_count": 0
 	}
 
-	# Validate the file first
-	var validation = validate_templates_file(file_path)
+	# Validate the file using the appropriate importer
+	var file_extension = file_path.get_extension().to_lower()
+	var importer = importers.get(file_extension, default_importer)
+
+	if not importer:
+		result.error = "No suitable importer found for file extension: " + file_extension
+		return result
+
+	var validation = importer.validate_file(file_path)
 	if not validation.valid:
 		result.error = validation.error
 		return result
@@ -432,36 +432,11 @@ func import_templates_from_file(file_path: String, merge_strategy: int = MERGE_R
 	# Get the templates from the file
 	var imported_templates = validation.data
 
-	# Create a backup of current templates before modifying
-	var backup_templates = templates.duplicate(true)
+	# Apply the merge strategy using the importer's implementation
+	templates = importer.apply_templates(imported_templates, templates, merge_strategy)
 
-	# Apply merge strategy
-	match merge_strategy:
-		MERGE_REPLACE_ALL:
-			# Replace all templates
-			templates = imported_templates
-
-		MERGE_KEEP_EXISTING:
-			# Merge node types and templates, but keep existing templates when there's a conflict
-			for node_type in imported_templates:
-				if not templates.has(node_type):
-					templates[node_type] = {}
-
-				for template_name in imported_templates[node_type]:
-					if not templates[node_type].has(template_name):
-						templates[node_type][template_name] = imported_templates[node_type][template_name]
-						result.imported_count += 1
-
-		MERGE_REPLACE_NODE_TYPES:
-			# Replace all templates for matching node types, but keep node types that aren't in the import
-			for node_type in imported_templates:
-				templates[node_type] = imported_templates[node_type]
-				result.imported_count += len(imported_templates[node_type])
-
-	# If we replaced all templates, count the imported templates
-	if merge_strategy == MERGE_REPLACE_ALL:
-		for node_type in templates:
-			result.imported_count += len(templates[node_type])
+	# Count imported templates
+	result.imported_count = importer.count_templates(imported_templates)
 
 	# Save the updated templates
 	save_templates()
@@ -469,8 +444,42 @@ func import_templates_from_file(file_path: String, merge_strategy: int = MERGE_R
 	result.success = true
 	return result
 
+# Get a list of available importers
+func get_available_importers() -> Dictionary:
+	var result = {}
+	for key in importers.keys():
+		result[key] = importers[key].get_importer_name()
+	return result
+
+# Get a list of available exporters
+func get_available_exporters() -> Dictionary:
+	var result = {}
+	for key in exporters.keys():
+		result[key] = exporters[key].get_exporter_name()
+	return result
+
+# Get file filters for import dialog
+func get_import_file_filters() -> PackedStringArray:
+	var filters = PackedStringArray()
+	for importer_key in importers.keys():
+		var importer = importers[importer_key]
+		var extensions = importer.get_supported_extensions()
+		for ext in extensions:
+			filters.append("*." + ext + " ; " + ext.to_upper() + " Files")
+	return filters
+
+# Get file filters for export dialog
+func get_export_file_filters() -> PackedStringArray:
+	var filters = PackedStringArray()
+	for exporter_key in exporters.keys():
+		var exporter = exporters[exporter_key]
+		var extensions = exporter.get_supported_extensions()
+		for ext in extensions:
+			filters.append("*." + ext + " ; " + ext.to_upper() + " Files")
+	return filters
+
+# Clean up resources when this object is destroyed
 func _notification(what):
-	# Clean up the timer when this object is being freed
 	if what == NOTIFICATION_PREDELETE:
 		if file_check_timer and is_instance_valid(file_check_timer):
 			file_check_timer.stop()

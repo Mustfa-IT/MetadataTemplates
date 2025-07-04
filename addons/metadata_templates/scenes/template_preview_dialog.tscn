@@ -19,10 +19,12 @@ corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
 
 [node name="TemplatePreviewDialog" type="Window"]
+oversampling_override = 1.0
+title = "Template Preview"
 initial_position = 1
 size = Vector2i(800, 500)
+visible = false
 transient = true
-exclusive = false
 min_size = Vector2i(600, 400)
 script = ExtResource("1_qw0bx")
 
@@ -40,7 +42,6 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_kdtmn")
 
 [node name="NodeList" type="Tree" parent="HSplitContainer/LeftPanel"]
 layout_mode = 2
-columns = 1
 select_mode = 1
 scroll_horizontal_enabled = false
 

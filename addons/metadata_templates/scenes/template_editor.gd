@@ -30,6 +30,7 @@ var ui_ready = false
 @onready var import_dialog = $ImportDialog
 @onready var import_merge_dialog = $ImportMergeDialog
 @onready var merge_option_button = $ImportMergeDialog/VBoxContainer/MergeOptionButton
+@onready var import_preview_dialog = null
 
 # Component managers
 var template_list_manager: TemplateListManager
@@ -82,9 +83,26 @@ func _ready() -> void:
 		# Perform delayed initialization after ready
 		call_deferred("_initialize_managers_deferred")
 
+		# Load the import preview dialog
+		call_deferred("_load_import_preview_dialog")
+
 		ui_ready = true
 	else:
 		printerr("Warning: UI components not found, connections not established")
+
+	# Update export/import dialog filters to support all formats
+	if template_manager:
+		export_dialog.clear_filters()
+		for filter in template_manager.get_export_file_filters():
+			export_dialog.add_filter(filter)
+
+		import_dialog.clear_filters()
+		for filter in template_manager.get_import_file_filters():
+			import_dialog.add_filter(filter)
+	else:
+		# Default filters if template_manager isn't available yet
+		export_dialog.add_filter("*.json", "JSON Files")
+		import_dialog.add_filter("*.json", "JSON Files")
 
 # Perform initialization after _ready to ensure proper node setup
 func _initialize_managers_deferred() -> void:
@@ -390,33 +408,70 @@ func _on_import_file_selected(path: String) -> void:
 		dialog.queue_free()
 		return
 
-	# Store path for when merge dialog is confirmed
-	import_merge_dialog.set_meta("import_path", path)
+	# Instead of showing the merge dialog directly, show the preview dialog
+	if import_preview_dialog:
+		# Hide the import dialog first
+		import_dialog.hide()
+		await get_tree().process_frame
 
-	# Make sure import dialog is fully closed before showing merge dialog
-	import_dialog.hide()
-	await get_tree().process_frame
+		# Setup and show the preview dialog
+		import_preview_dialog.setup(template_manager, path)
+		import_preview_dialog.popup_centered()
+	else:
+		# Fallback to old behavior if preview dialog isn't available
+		import_merge_dialog.set_meta("import_path", path)
 
-	# Position the merge dialog in a visible area of the screen
-	var screen_size = DisplayServer.screen_get_size()
-	var dialog_size = import_merge_dialog.size
-	import_merge_dialog.position = Vector2i(
-		(screen_size.x - dialog_size.x) / 2,
-		min((screen_size.y - dialog_size.y) / 2, screen_size.y - dialog_size.y - 50)
-	)
-
-	# Now show the merge dialog
-	import_merge_dialog.popup_centered()
+		# Make sure import dialog is fully closed before showing merge dialog
+		import_dialog.hide()
+		await get_tree().process_frame
+		import_merge_dialog.popup_centered()
 
 func _on_export_button_pressed() -> void:
 	if not template_manager:
 		printerr("Cannot export: template_manager is null")
 		return
 
-	# Set default filename with date
-	var date_string = Time.get_datetime_string_from_system().replace(":", "-")
-	export_dialog.current_file = "metadata_templates_" + date_string + ".json"
-	export_dialog.popup_centered()
+	# Add format selector to export dialog
+	var exporters = template_manager.get_available_exporters()
+	if exporters.size() > 1:
+		# If we have multiple exporters, show a format selection dialog
+		var format_dialog = ConfirmationDialog.new()
+		format_dialog.title = "Select Export Format"
+
+		var vbox = VBoxContainer.new()
+		format_dialog.add_child(vbox)
+
+		var label = Label.new()
+		label.text = "Select export format:"
+		vbox.add_child(label)
+
+		var format_option = OptionButton.new()
+		for format in exporters:
+			format_option.add_item(exporters[format], format_option.get_item_count())
+			format_option.set_item_metadata(format_option.get_item_count() - 1, format)
+		vbox.add_child(format_option)
+
+		add_child(format_dialog)
+		format_dialog.popup_centered()
+
+		# Wait for user to select a format
+		await format_dialog.confirmed
+
+		var selected_format = format_option.get_selected_metadata()
+		if selected_format:
+			# Set the current file in the export dialog with the selected format
+			var date_string = Time.get_datetime_string_from_system().replace(":", "-")
+			export_dialog.current_file = "metadata_templates_" + date_string + "." + selected_format
+
+			# Show the export dialog
+			export_dialog.popup_centered()
+
+		format_dialog.queue_free()
+	else:
+		# Default to JSON if only one exporter is available
+		var date_string = Time.get_datetime_string_from_system().replace(":", "-")
+		export_dialog.current_file = "metadata_templates_" + date_string + ".json"
+		export_dialog.popup_centered()
 
 func _on_export_file_selected(path: String) -> void:
 	if not template_manager:
@@ -461,6 +516,11 @@ func _on_import_merge_confirmed() -> void:
 	import_merge_dialog.hide()
 	await get_tree().process_frame
 
+	# Call our new function to handle the import
+	_on_import_preview_confirmed(path, merge_strategy)
+
+func _on_import_preview_confirmed(path: String, merge_strategy: int) -> void:
+	# Perform the import
 	var import_result = template_manager.import_templates_from_file(path, merge_strategy)
 
 	# Show result dialog
@@ -483,3 +543,17 @@ func _on_import_merge_confirmed() -> void:
 	dialog.popup_centered()
 	await dialog.confirmed
 	dialog.queue_free()
+
+func _on_import_preview_canceled() -> void:
+	# Import was canceled, nothing to do
+	pass
+
+func _load_import_preview_dialog() -> void:
+	# Create the import preview dialog
+	var preview_scene = load("res://addons/metadata_templates/scenes/template_import_preview_dialog.tscn")
+	if preview_scene:
+		import_preview_dialog = preview_scene.instantiate()
+		add_child(import_preview_dialog)
+		import_preview_dialog.connect("import_confirmed", _on_import_preview_confirmed)
+		import_preview_dialog.connect("import_canceled", _on_import_preview_canceled)
+		import_preview_dialog.hide()
